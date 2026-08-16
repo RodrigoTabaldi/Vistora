@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d3b33">
+  <title>Vistora — gestão de vistorias imobiliárias</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><rect width='40' height='40' rx='11' fill='%230d3b33'/><path d='M8 18.5 L20 8.5 L32 18.5' stroke='%23e0a93f' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/><path d='M12.5 22.5 L18 28.5 L28 16.5' stroke='%23fff' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+</head>
+<body>
+
+<!-- Logo autêntica: telhado (imóvel) + verificação (vistoria aprovada) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="logomark" viewBox="0 0 40 40">
+  <rect width="40" height="40" rx="11" class="lm-bg"/>
+  <path d="M7.5 18.8 L20 8.2 L32.5 18.8" class="lm-roof" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M12.5 22.6 L18.2 28.6 L28 16.6" class="lm-check" fill="none" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</symbol></svg>
+
+<!-- ================= LOGIN ================= -->
+<section class="login-screen" id="loginScreen">
+  <div class="login-visual">
+    <a class="logo" href="#"><svg class="logo-mark"><use href="#logomark"/></svg><span class="logo-type">vistora<small>INSPEÇÕES IMOBILIÁRIAS</small></span></a>
+    <div class="visual-copy">
+      <span class="kicker">LAUDOS QUE SUSTENTAM CONTRATOS</span>
+      <h1>Cada imóvel documentado <em>com precisão.</em></h1>
+      <p>Modelos por tipo de imóvel, medidores e chaves, evidências georreferenciadas e laudo pronto para assinatura — do celular em campo ao escritório.</p>
+    </div>
+    <ul class="visual-points">
+      <li><b>◆</b> 14 modelos profissionais prontos</li>
+      <li><b>◆</b> Fotos com data, local e hash</li>
+      <li><b>◆</b> Checklist totalmente personalizável</li>
+    </ul>
+  </div>
+  <div class="login-panel">
+    <div class="login-card">
+      <span class="eyebrow">ACESSO À PLATAFORMA</span>
+      <h2>Entre na sua operação.</h2>
+      <p>Imóveis, vistorias e laudos em um só lugar.</p>
+      <form id="loginForm">
+        <label>E-mail<input id="loginEmail" type="email" autocomplete="email" value="admin@atelierimoveis.com.br" required></label>
+        <label>Senha <button type="button" class="inline-link" id="forgotBtn">Esqueci minha senha</button>
+          <div class="password-field"><input id="loginPassword" type="password" autocomplete="current-password" value="Vistora@2026" required><button type="button" id="passwordToggle" aria-label="Mostrar senha">◉</button></div>
+        </label>
+        <div class="remember"><label><input type="checkbox" checked> Manter minha sessão ativa</label></div>
+        <button class="primary wide" type="submit">Entrar na Vistora <span>→</span></button>
+        <p class="form-message" id="loginMessage" aria-live="polite"></p>
+      </form>
+      <div class="demo-note">Ambiente demonstrativo · credenciais preenchidas</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= APP ================= -->
+<div class="app-shell hidden" id="appShell">
+
+  <!-- Barra superior -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a class="logo" href="#dashboard" data-view="dashboard"><svg class="logo-mark"><use href="#logomark"/></svg><span class="logo-type">vistora<small>INSPEÇÕES</small></span></a>
+
+      <nav class="topnav" id="topnav">
+        <a href="#dashboard" data-view="dashboard" class="active">Painel</a>
+        <a href="#imoveis" data-view="properties">Imóveis</a>
+        <a href="#vistorias" data-view="inspections">Vistorias <em id="navInspCount">3</em></a>
+        <a href="#agenda" data-view="agenda">Agenda</a>
+        <a href="#ocorrencias" data-view="occurrences">Ocorrências</a>
+        <a href="#modelos" data-view="templates">Modelos</a>
+        <a href="#relatorios" data-view="reports">Relatórios</a>
+        <i class="nav-indicator" id="navIndicator"></i>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="icon" id="searchBtn" aria-label="Pesquisar">⌕</button>
+        <button class="icon notification" id="notificationsBtn" aria-label="Notificações">◔</button>
+        <button class="primary" id="newInspectionBtn"><span class="plus">+</span> Nova vistoria</button>
+        <button class="account" id="accountBtn" aria-label="Conta"><span id="profileInitials">MC</span></button>
+        <button class="burger" id="mobileMenu" aria-label="Menu"><i></i><i></i><i></i></button>
+      </div>
+    </div>
+
+    <!-- Menu mobile deslizante -->
+    <div class="mobile-sheet" id="mobileSheet">
+      <a href="#dashboard" data-view="dashboard"><b>◧</b> Painel</a>
+      <a href="#imoveis" data-view="properties"><b>⌂</b> Imóveis</a>
+      <a href="#vistorias" data-view="inspections"><b>◑</b> Vistorias</a>
+      <a href="#agenda" data-view="agenda"><b>▤</b> Agenda</a>
+      <a href="#ocorrencias" data-view="occurrences"><b>◭</b> Ocorrências</a>
+      <a href="#modelos" data-view="templates"><b>❑</b> Modelos</a>
+      <a href="#relatorios" data-view="reports"><b>▦</b> Relatórios</a>
+      <a href="#equipe" data-view="team"><b>◔</b> Equipe &amp; acesso</a>
+      <a href="#config" data-view="settings"><b>◎</b> Configurações</a>
+      <button class="sheet-out" id="logoutBtnMobile">Sair da conta</button>
+    </div>
+  </div>
+
+  <main>
+    <header>
+      <div><span class="crumb" id="crumb">OPERAÇÃO</span><h1 id="pageTitle">Painel</h1><p id="pageSubtitle"></p></div>
+      <div class="header-side" id="headerSide"></div>
+    </header>
+    <div id="toast" role="status"></div>
+    <section id="pageContent"></section>
+    <footer class="app-footer"><svg class="logo-mark sm"><use href="#logomark"/></svg> <span>Vistora · plataforma de vistoria imobiliária</span></footer>
+  </main>
+
+  <nav class="mobile-dock" aria-label="Navegação rápida">
+    <button data-view="dashboard"><b>◧</b><span>Início</span></button>
+    <button data-view="properties"><b>⌂</b><span>Imóveis</span></button>
+    <button class="dock-create" id="dockCreate" aria-label="Nova vistoria">+</button>
+    <button data-view="inspections"><b>◑</b><span>Vistorias</span></button>
+    <button data-view="occurrences"><b>◭</b><span>Alertas</span></button>
+  </nav>
+</div>
+
+<!-- ================= MODAIS ================= -->
+<div class="modal" id="modal"><form class="modal-box" id="inspectionForm">
+  <button type="button" class="close" data-close="modal">×</button>
+  <span class="eyebrow">NOVA OPERAÇÃO</span><h2>Agendar vistoria</h2>
+  <label>Imóvel<select id="propertyId" required></select></label>
+  <label>Tipo de vistoria<select id="inspectionType"><option>Vistoria de entrada</option><option>Vistoria de saída</option><option>Vistoria periódica</option><option>Vistoria de manutenção</option><option>Vistoria de conferência</option></select></label>
+  <label>Modelo de checklist<select id="templateId"><option value="">Começar em branco</option></select></label>
+  <p class="field-hint" id="templateHint">Escolha um modelo para pré-carregar ambientes e tópicos.</p>
+  <div class="two-col"><label>Data e hora<input id="scheduledAt" type="datetime-local" required></label><label>Vistoriador<input id="inspector" value="Lucas Mendes" required></label></div>
+  <button class="primary wide">Criar vistoria <span>→</span></button>
+</form></div>
+
+<div class="modal" id="propertyModal"><form class="modal-box" id="propertyForm">
+  <button type="button" class="close" data-close="propertyModal">×</button>
+  <span class="eyebrow">NOVO IMÓVEL</span><h2>Adicionar ao portfólio</h2>
+  <label>Nome do imóvel<input id="newPropertyTitle" placeholder="Ex.: Apartamento Horizonte 602" required></label>
+  <label>Tipo<select id="newPropertyType"><option>Apartamento</option><option>Casa</option><option>Comercial</option><option>Terreno</option><option>Condominio</option></select></label>
+  <label>Endereço<input id="newPropertyAddress" required></label>
+  <label>Bairro e cidade<input id="newPropertyNeighborhood" placeholder="Vila Madalena · São Paulo" required></label>
+  <div class="two-col"><label>Área (m²)<input id="newPropertyArea" type="number" min="1" required></label><label>Quartos<input id="newPropertyBedrooms" type="number" min="0" value="0"></label></div>
+  <label>Proprietário<input id="newPropertyOwner" required></label>
+  <button class="primary wide">Adicionar imóvel <span>→</span></button>
+</form></div>
+
+<div class="modal" id="simpleModal"><div class="modal-box simple"><button type="button" class="close" data-close="simpleModal">×</button><div id="simpleModalContent"></div></div></div>
+<div class="modal" id="templateModal"><div class="modal-box wide-modal"><button type="button" class="close" data-close="templateModal">×</button><div id="templateModalContent"></div></div></div>
+
+<script src="/app.js"></script>
+</body></html>
