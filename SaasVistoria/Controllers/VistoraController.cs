@@ -103,6 +103,6 @@ public sealed class VistoraController(IVistoraStore store) : ControllerBase
         return Created("api/occurrences", store.AddOccurrence(request));
     }
     [HttpPut("occurrences/{id:guid}/status")]
-    public IActionResult UpdateOccurrence(Guid id, [FromBody] string status) =>
-        store.UpdateOccurrenceStatus(id, status) is { } o ? Ok(o) : NotFound();
+    public IActionResult UpdateOccurrence(Guid id, UpdateOccurrenceRequest request) =>
+        store.UpdateOccurrenceStatus(id, request.Status, request.Resolution) is { } o ? Ok(o) : NotFound();
 }

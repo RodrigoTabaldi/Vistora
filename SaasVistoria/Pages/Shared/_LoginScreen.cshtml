@@ -1,0 +1,73 @@
+@*
+    Tela de entrada. Duas colunas no desktop (prova + formulário), uma no celular.
+    O <form> tem validação por campo com mensagem associada por aria-describedby.
+*@
+<section class="login-screen" id="loginScreen">
+    <div class="login-visual">
+        <span class="logo logo--light">
+            <svg class="logo-mark" aria-hidden="true" focusable="false"><use href="#logomark" /></svg>
+            <span class="logo-type">vistora<small>VISTORIA IMOBILIÁRIA</small></span>
+        </span>
+
+        <div class="visual-copy">
+            <p class="kicker">Laudo que sustenta o contrato</p>
+            <h1>O estado do imóvel, <em>registrado sem discussão.</em></h1>
+            <p class="visual-lede">
+                Checklist por ambiente, leitura de medidores, foto com data, local e hash.
+                Na saída, a comparação com a entrada sai pronta — e o laudo vai assinado para as partes.
+            </p>
+        </div>
+
+        <ul class="visual-points">
+            <li><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-selo" /></svg> Evidência com hash e geolocalização</li>
+            <li><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-vistoria" /></svg> Comparação entrada × saída automática</li>
+            <li><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-offline" /></svg> Funciona sem sinal dentro do imóvel</li>
+        </ul>
+    </div>
+
+    <div class="login-panel">
+        <div class="login-card">
+            <p class="eyebrow">Acesso à plataforma</p>
+            <h2>Entrar na sua operação</h2>
+            <p class="login-lede">Imóveis, vistorias, laudos e pendências no mesmo lugar.</p>
+
+            <form id="loginForm" novalidate>
+                <div class="field">
+                    <label for="loginEmail">E-mail</label>
+                    <input id="loginEmail" name="email" type="email" autocomplete="email" required
+                           aria-describedby="loginEmailErro" value="admin@@atelierimoveis.com.br">
+                    <p class="field-error" id="loginEmailErro" data-error-for="loginEmail"></p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <label for="loginPassword">Senha</label>
+                        <button type="button" class="link-btn" id="forgotBtn">Esqueci minha senha</button>
+                    </div>
+                    <div class="password-field">
+                        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required
+                               aria-describedby="loginPasswordErro" value="Vistora@@2026">
+                        <button type="button" id="passwordToggle" aria-pressed="false">
+                            <span class="sr-only" data-toggle-label>Mostrar senha</span>
+                            <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-olho" /></svg>
+                        </button>
+                    </div>
+                    <p class="field-error" id="loginPasswordErro" data-error-for="loginPassword"></p>
+                </div>
+
+                <label class="check-line">
+                    <input type="checkbox" id="keepSession" checked> Manter minha sessão ativa
+                </label>
+
+                <button class="btn btn--primary btn--block" type="submit">
+                    Entrar
+                    <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-seta" /></svg>
+                </button>
+
+                <p class="form-message" id="loginMessage" role="alert"></p>
+            </form>
+
+            <p class="demo-note">Ambiente demonstrativo · credenciais já preenchidas</p>
+        </div>
+    </div>
+</section>

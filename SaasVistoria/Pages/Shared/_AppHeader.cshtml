@@ -1,0 +1,78 @@
+@*
+    Cabeçalho da aplicação.
+
+    A navegação foi dividida em dois níveis: o que se usa todo dia fica visível
+    (Painel, Vistorias, Imóveis, Agenda, Ocorrências) e o que se usa por exceção
+    entra no menu "Mais". Antes eram nove itens disputando a mesma linha, o que
+    forçava rolagem horizontal e escondia as ações de conta.
+*@
+<header class="topbar" id="topbar">
+    <div class="topbar-inner">
+        <a class="logo" href="#painel" data-view="dashboard">
+            <svg class="logo-mark" aria-hidden="true" focusable="false"><use href="#logomark" /></svg>
+            <span class="logo-type">vistora<small>VISTORIA IMOBILIÁRIA</small></span>
+        </a>
+
+        <nav class="topnav" id="topnav" aria-label="Navegação principal">
+            <a href="#painel" data-view="dashboard"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-painel" /></svg>Painel</a>
+            <a href="#vistorias" data-view="inspections">
+                <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-vistoria" /></svg>Vistorias
+                <em id="navInspCount" aria-hidden="true">0</em>
+                <span class="sr-only" id="navInspCountLabel"></span>
+            </a>
+            <a href="#imoveis" data-view="properties"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-imovel" /></svg>Imóveis</a>
+            <a href="#agenda" data-view="agenda"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-agenda" /></svg>Agenda</a>
+            <a href="#ocorrencias" data-view="occurrences"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-alerta" /></svg>Ocorrências</a>
+
+            <div class="nav-more">
+                <button type="button" class="nav-more-btn" id="moreBtn" aria-expanded="false" aria-controls="moreMenu" aria-haspopup="true">
+                    Mais
+                    <svg class="ico chevron" aria-hidden="true" focusable="false"><use href="#i-chevron" /></svg>
+                </button>
+                <div class="nav-more-menu" id="moreMenu" role="menu" hidden>
+                    <p class="menu-group" id="grpDocs">Documentos</p>
+                    <a role="menuitem" href="#laudos" data-view="reports" aria-describedby="grpDocs"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-laudo" /></svg>Laudos</a>
+                    <a role="menuitem" href="#contestacoes" data-view="contestations"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-contestacao" /></svg>Contestações</a>
+                    <p class="menu-group" id="grpCad">Cadastros</p>
+                    <a role="menuitem" href="#contratos" data-view="contracts" aria-describedby="grpCad"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-contrato" /></svg>Contratos e partes</a>
+                    <a role="menuitem" href="#modelos" data-view="templates"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-modelo" /></svg>Modelos de checklist</a>
+                    <p class="menu-group" id="grpConta">Conta</p>
+                    <a role="menuitem" href="#equipe" data-view="team" aria-describedby="grpConta"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-equipe" /></svg>Equipe e acesso</a>
+                    <a role="menuitem" href="#config" data-view="settings"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-config" /></svg>Configurações</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="topbar-actions">
+            <button class="btn btn--icon" id="searchBtn">
+                <span class="sr-only">Pesquisar imóveis</span>
+                <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-busca" /></svg>
+            </button>
+            <button class="btn btn--icon has-badge" id="notificationsBtn">
+                <span class="sr-only">Notificações</span>
+                <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-sino" /></svg>
+            </button>
+            <button class="btn btn--primary" id="newInspectionBtn">
+                <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-mais" /></svg>
+                <span class="btn-label">Nova vistoria</span>
+            </button>
+
+            <div class="account-wrap">
+                <button class="account" id="accountBtn" aria-expanded="false" aria-controls="accountMenu" aria-haspopup="true">
+                    <span class="sr-only">Conta de <span id="profileName">usuário</span></span>
+                    <span id="profileInitials" aria-hidden="true">··</span>
+                </button>
+                <div class="account-menu" id="accountMenu" role="menu" hidden>
+                    <p class="account-id"><strong id="accountName">—</strong><span id="accountRole">—</span></p>
+                    <a role="menuitem" href="#config" data-view="settings"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-config" /></svg>Configurações</a>
+                    <button role="menuitem" type="button" id="logoutBtn"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-sair" /></svg>Sair da conta</button>
+                </div>
+            </div>
+
+            <button class="burger" id="mobileMenu" aria-expanded="false" aria-controls="mobileSheet">
+                <span class="sr-only">Abrir menu</span>
+                <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-menu" /></svg>
+            </button>
+        </div>
+    </div>
+</header>

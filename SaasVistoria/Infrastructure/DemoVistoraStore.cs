@@ -3,7 +3,7 @@ using SaasVistoria.Domain;
 
 namespace SaasVistoria.Infrastructure;
 
-public sealed class DemoVistoraStore : IVistoraStore
+public sealed partial class DemoVistoraStore : IVistoraStore
 {
     private readonly object _gate = new();
     private readonly Guid _companyId = Guid.Parse("dcd2d9bc-2e2e-4c95-abcf-010000000001");
@@ -32,14 +32,16 @@ public sealed class DemoVistoraStore : IVistoraStore
             new(Guid.Parse("00000000-0000-0000-0000-000000000102"), _companyId, "Casa Bosque Alto", PropertyType.Casa, "Alameda dos Ipês, 48", "Alto de Pinheiros · São Paulo", 268, 4, 3, "Desocupado", "Ricardo Nobre", "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=80", -23.546m, -46.714m),
             new(Guid.Parse("00000000-0000-0000-0000-000000000103"), _companyId, "Loja Galeria Centro", PropertyType.Comercial, "Rua Avanhandava, 91", "Bela Vista · São Paulo", 76, 0, 0, "Ocupado", "Grupo Horizonte", "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80", -23.552m, -46.646m)
         ];
+        // A vistoria de entrada 0200 é a referência da vistoria de saída 0201 (comparação entrada × saída).
         _inspections = [
-            new(Guid.Parse("00000000-0000-0000-0000-000000000201"), _companyId, _properties[0].Id, "VIS-2026-0418", _properties[0].Title, "Vistoria de saída", InspectionStatus.EmAndamento, DateTime.Today.AddHours(14), "Lucas Mendes", 68, 3, _properties[0].ImageUrl),
-            new(Guid.Parse("00000000-0000-0000-0000-000000000202"), _companyId, _properties[1].Id, "VIS-2026-0417", _properties[1].Title, "Vistoria de entrada", InspectionStatus.AguardandoAssinatura, DateTime.Today.AddDays(1).AddHours(10), "Ana Ribeiro", 100, 0, _properties[1].ImageUrl),
-            new(Guid.Parse("00000000-0000-0000-0000-000000000203"), _companyId, _properties[2].Id, "VIS-2026-0416", _properties[2].Title, "Vistoria periódica", InspectionStatus.Agendada, DateTime.Today.AddDays(2).AddHours(15), "Lucas Mendes", 0, 0, _properties[2].ImageUrl)
+            new(Guid.Parse("00000000-0000-0000-0000-000000000200"), _companyId, _properties[0].Id, "VIS-2024-0106", _properties[0].Title, "Vistoria de entrada", InspectionStatus.Concluida, DateTime.Today.AddYears(-2), "Ana Ribeiro", 100, 0, _properties[0].ImageUrl, InspectionKind.Entrada),
+            new(Guid.Parse("00000000-0000-0000-0000-000000000201"), _companyId, _properties[0].Id, "VIS-2026-0418", _properties[0].Title, "Vistoria de saída", InspectionStatus.EmAndamento, DateTime.Today.AddHours(14), "Lucas Mendes", 68, 3, _properties[0].ImageUrl, InspectionKind.Saida, null, Guid.Parse("00000000-0000-0000-0000-000000000200")),
+            new(Guid.Parse("00000000-0000-0000-0000-000000000202"), _companyId, _properties[1].Id, "VIS-2026-0417", _properties[1].Title, "Vistoria de entrada", InspectionStatus.AguardandoAssinatura, DateTime.Today.AddDays(1).AddHours(10), "Ana Ribeiro", 100, 0, _properties[1].ImageUrl, InspectionKind.Entrada),
+            new(Guid.Parse("00000000-0000-0000-0000-000000000203"), _companyId, _properties[2].Id, "VIS-2026-0416", _properties[2].Title, "Vistoria periódica", InspectionStatus.Agendada, DateTime.Today.AddDays(2).AddHours(15), "Lucas Mendes", 0, 0, _properties[2].ImageUrl, InspectionKind.Periodica)
         ];
         _occurrences = [
-            new(Guid.NewGuid(), _companyId, _inspections[0].Id, "Infiltração junto à janela", "Alta", "Em análise", DateTime.Today.AddDays(3), 1800, _properties[0].Title),
-            new(Guid.NewGuid(), _companyId, _inspections[0].Id, "Tomada sem espelho", "Média", "Aberta", DateTime.Today.AddDays(7), 120, _properties[0].Title)
+            new(Guid.NewGuid(), _companyId, _inspections[1].Id, "Infiltração junto à janela", "Alta", "Em análise", DateTime.Today.AddDays(3), 1800, _properties[0].Title, "Proprietário"),
+            new(Guid.NewGuid(), _companyId, _inspections[1].Id, "Tomada sem espelho", "Média", "Aberta", DateTime.Today.AddDays(7), 120, _properties[0].Title, "Locatário")
         ];
         _audit = [
             new(Guid.NewGuid(), _companyId, "Iniciou vistoria", "VIS-2026-0418", "Lucas Mendes", DateTime.Now.AddMinutes(-22), "Check-in confirmado por geolocalização"),
@@ -49,16 +51,22 @@ public sealed class DemoVistoraStore : IVistoraStore
             .Select(t => new InspectionTemplate(Guid.NewGuid(), _companyId, t.Name, t.Description, t.Type, true, t.Rooms))
             .ToList();
 
-        // Materializa itens iniciais da vistoria em andamento a partir de um checklist real
+        // Vistoria de entrada (referência histórica) e vistoria de saída em andamento — mesmos tópicos, para comparação.
         SeedItems(_inspections[0].Id,
+            ("Sala de estar", "Paredes e pintura", ConditionStatus.Otimo, "Pintura nova.", 2),
+            ("Sala de estar", "Piso de madeira", ConditionStatus.Otimo, "Sem avarias.", 3),
+            ("Cozinha", "Bancada e cuba", ConditionStatus.Otimo, "Rejunte íntegro.", 2),
+            ("Quarto principal", "Janela", ConditionStatus.Bom, "Vedação em ordem.", 1));
+        SeedItems(_inspections[1].Id,
             ("Sala de estar", "Paredes e pintura", ConditionStatus.Bom, "Pequena marca na parede norte.", 2),
             ("Sala de estar", "Piso de madeira", ConditionStatus.Otimo, "Sem avarias visíveis.", 3),
             ("Cozinha", "Bancada e cuba", ConditionStatus.Regular, "Rejunte com desgaste leve.", 2),
             ("Quarto principal", "Janela", ConditionStatus.Danificado, "Vedação ressecada.", 1));
-        _evidence[_inspections[0].Id] = [
-            new(Guid.NewGuid(), _inspections[0].Id, null, "Sala de estar", "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=900&q=80", DateTime.Now.AddMinutes(-18), -23.5613m, -46.669m, 8m, "SHA-256: 08f5...b1a9", "Lucas Mendes"),
-            new(Guid.NewGuid(), _inspections[0].Id, null, "Cozinha", "https://images.unsplash.com/photo-1556912172-45b7abe8b7e1?auto=format&fit=crop&w=900&q=80", DateTime.Now.AddMinutes(-11), -23.5612m, -46.6689m, 6m, "SHA-256: 51c2...7e04", "Lucas Mendes")
+        _evidence[_inspections[1].Id] = [
+            new(Guid.NewGuid(), _inspections[1].Id, null, "Sala de estar", "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=900&q=80", DateTime.Now.AddMinutes(-18), -23.5613m, -46.669m, 8m, "SHA-256: 08f5...b1a9", "Lucas Mendes"),
+            new(Guid.NewGuid(), _inspections[1].Id, null, "Cozinha", "https://images.unsplash.com/photo-1556912172-45b7abe8b7e1?auto=format&fit=crop&w=900&q=80", DateTime.Now.AddMinutes(-11), -23.5612m, -46.6689m, 6m, "SHA-256: 51c2...7e04", "Lucas Mendes")
         ];
+        SeedParties();
     }
 
     private void SeedItems(Guid inspectionId, params (string Room, string Name, ConditionStatus Condition, string Notes, int Photos)[] rows)
@@ -69,7 +77,8 @@ public sealed class DemoVistoraStore : IVistoraStore
         lock (_gate)
         {
             var user = _users.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
-            return user is not null && PasswordHasher.Verify(password, user.PasswordHash) ? user : null;
+            // Usuário desativado não acessa, mas o histórico dele permanece na auditoria.
+            return user is { Active: true } && PasswordHasher.Verify(password, user.PasswordHash) ? user : null;
         }
     }
 
@@ -93,7 +102,8 @@ public sealed class DemoVistoraStore : IVistoraStore
         {
             var p = _properties.FirstOrDefault(x => x.Id == r.PropertyId) ?? throw new KeyNotFoundException("Imóvel não encontrado.");
             var code = $"VIS-{DateTime.Today:yyyy}-{(_inspections.Count == 0 ? 0 : _inspections.Max(NumberOf)) + 1:0000}";
-            var i = new Inspection(Guid.NewGuid(), _companyId, r.PropertyId, code, p.Title, r.Type, InspectionStatus.Agendada, r.ScheduledAt, r.Inspector, 0, 0, p.ImageUrl);
+            var i = new Inspection(Guid.NewGuid(), _companyId, r.PropertyId, code, p.Title, r.Type, InspectionStatus.Agendada, r.ScheduledAt, r.Inspector, 0, 0, p.ImageUrl,
+                r.Kind, r.ContractId, r.PreviousInspectionId);
             _inspections.Add(i);
 
             var template = r.TemplateId is { } tid ? _templates.FirstOrDefault(t => t.Id == tid) : null;
@@ -101,13 +111,17 @@ public sealed class DemoVistoraStore : IVistoraStore
             if (template is not null)
                 foreach (var room in template.Rooms)
                     foreach (var topic in room.Topics)
-                        items.Add(new(Guid.NewGuid(), i.Id, room.Name, topic, ConditionStatus.NaoAvaliado, "", 0));
+                        items.Add(new(Guid.NewGuid(), i.Id, room.Name, topic, ConditionStatus.NaoAvaliado, "", 0, IsCritical(topic)));
             _items[i.Id] = items;
             Log("Agendou vistoria", code, r.Inspector, template is null ? "Vistoria em branco" : $"Modelo: {template.Name} ({items.Count} itens)");
             return i;
         }
         static int NumberOf(Inspection x) => int.TryParse(x.Code.Split('-').Last(), out var n) ? n : 0;
     }
+
+    // Tópicos ligados a segurança e a itens de entrega nascem obrigatórios; o vistoriador pode ajustar em campo.
+    private static readonly string[] CriticalTopics = ["quadro", "disjuntor", "gás", "elétric", "chuveiro", "hidrômetro", "medidor", "fechadura", "extintor", "aquecedor", "infiltra", "estrutur"];
+    private static bool IsCritical(string topic) => CriticalTopics.Any(k => topic.Contains(k, StringComparison.OrdinalIgnoreCase));
 
     public Inspection? CompleteInspection(Guid id, string actor)
     {
@@ -133,7 +147,7 @@ public sealed class DemoVistoraStore : IVistoraStore
         lock (_gate)
         {
             var list = _items.TryGetValue(inspectionId, out var l) ? l : _items[inspectionId] = [];
-            var item = new InspectionItem(Guid.NewGuid(), inspectionId, r.Room.Trim(), r.Name.Trim(), ConditionStatus.NaoAvaliado, "", 0);
+            var item = new InspectionItem(Guid.NewGuid(), inspectionId, r.Room.Trim(), r.Name.Trim(), ConditionStatus.NaoAvaliado, "", 0, r.Required);
             list.Add(item);
             RecalcCompletion(inspectionId);
             return item;
@@ -147,7 +161,12 @@ public sealed class DemoVistoraStore : IVistoraStore
             if (!_items.TryGetValue(inspectionId, out var list)) return null;
             var idx = list.FindIndex(x => x.Id == itemId);
             if (idx < 0) return null;
-            var updated = list[idx] with { Condition = r.Condition, Notes = r.Notes };
+            var updated = list[idx] with
+            {
+                Condition = r.Condition, Notes = r.Notes, Severity = r.Severity, IssueClass = r.IssueClass,
+                Test = r.Test, Recommendation = r.Recommendation, ResponsibleParty = r.ResponsibleParty,
+                DueDate = r.DueDate, EstimatedCost = r.EstimatedCost, Required = r.Required ?? list[idx].Required
+            };
             list[idx] = updated;
             RecalcCompletion(inspectionId);
             return updated;
@@ -185,6 +204,8 @@ public sealed class DemoVistoraStore : IVistoraStore
         }
     }
 
+    public Property? FindProperty(Guid id) { lock (_gate) return _properties.FirstOrDefault(p => p.Id == id); }
+
     public InspectionTemplate AddTemplate(CreateTemplate r)
     {
         lock (_gate)
@@ -212,20 +233,22 @@ public sealed class DemoVistoraStore : IVistoraStore
         lock (_gate)
         {
             var inspection = _inspections.FirstOrDefault(i => i.Id == r.InspectionId);
-            var o = new Occurrence(Guid.NewGuid(), _companyId, r.InspectionId, r.Title.Trim(), r.Priority, "Aberta", r.DueDate, r.EstimatedCost, inspection?.PropertyName ?? "");
+            var o = new Occurrence(Guid.NewGuid(), _companyId, r.InspectionId, r.Title.Trim(), r.Priority, "Aberta", r.DueDate, r.EstimatedCost, inspection?.PropertyName ?? "", r.Responsible, r.ItemId);
             _occurrences.Add(o);
             Log("Abriu ocorrência", o.Title, "Sistema", $"Prioridade {o.Priority}");
             return o;
         }
     }
 
-    public Occurrence? UpdateOccurrenceStatus(Guid id, string status)
+    public Occurrence? UpdateOccurrenceStatus(Guid id, string status, string? resolution)
     {
         lock (_gate)
         {
             var idx = _occurrences.FindIndex(o => o.Id == id);
             if (idx < 0) return null;
-            return _occurrences[idx] = _occurrences[idx] with { Status = status };
+            var updated = _occurrences[idx] = _occurrences[idx] with { Status = status, Resolution = resolution ?? _occurrences[idx].Resolution };
+            Log("Atualizou ocorrência", updated.Title, "Sistema", $"Status: {status}");
+            return updated;
         }
     }
 
@@ -242,6 +265,9 @@ public sealed class DemoVistoraStore : IVistoraStore
         _inspections[idx] = _inspections[idx] with { Completion = completion, PendingItems = pending, Status = status };
     }
 
-    private void Log(string action, string entity, string actor, string detail)
-        => _audit.Insert(0, new(Guid.NewGuid(), _companyId, action, entity, actor, DateTime.Now, detail));
+    // O lock é reentrante: Log também é chamado de dentro de operações que já seguram _gate.
+    public void Log(string action, string entity, string actor, string detail)
+    {
+        lock (_gate) _audit.Insert(0, new(Guid.NewGuid(), _companyId, action, entity, actor, DateTime.Now, detail));
+    }
 }

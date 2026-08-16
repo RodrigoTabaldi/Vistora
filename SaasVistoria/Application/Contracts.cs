@@ -13,11 +13,16 @@ public interface IVistoraStore
     IReadOnlyList<Occurrence> Occurrences { get; }
     IReadOnlyList<AuditEvent> Audit { get; }
     IReadOnlyList<InspectionTemplate> Templates { get; }
+    IReadOnlyList<Person> People { get; }
+    IReadOnlyList<LeaseContract> Contracts { get; }
+    IReadOnlyList<AppUser> Users { get; }
 
     AppUser? Validate(string email, string password);
     AppUser? FindUser(Guid id);
+    void Log(string action, string entity, string actor, string detail);
 
     Property AddProperty(CreateProperty request);
+    Property? FindProperty(Guid id);
     Inspection AddInspection(CreateInspection request);
     Inspection? FindInspection(Guid id);
     Inspection? CompleteInspection(Guid id, string actor);
@@ -34,17 +39,80 @@ public interface IVistoraStore
     bool RemoveTemplate(Guid id);
 
     Occurrence AddOccurrence(CreateOccurrence request);
-    Occurrence? UpdateOccurrenceStatus(Guid id, string status);
+    Occurrence? UpdateOccurrenceStatus(Guid id, string status, string? resolution);
+
+    // ---- Partes e contratos ----
+    Person AddPerson(CreatePerson request);
+    LeaseContract AddContract(CreateContract request);
+    LeaseContract? FindContract(Guid id);
+
+    // ---- Medidores, chaves e inventário ----
+    IReadOnlyList<MeterReading> GetMeters(Guid inspectionId);
+    MeterReading AddMeter(Guid inspectionId, CreateMeterReading request);
+    IReadOnlyList<KeyHandover> GetKeys(Guid inspectionId);
+    KeyHandover AddKey(Guid inspectionId, CreateKeyHandover request);
+    IReadOnlyList<InventoryAsset> GetInventory(Guid inspectionId);
+    InventoryAsset AddInventory(Guid inspectionId, CreateInventoryAsset request);
+
+    // ---- Check-in / check-out ----
+    Inspection? CheckIn(Guid id, decimal? latitude, decimal? longitude, string actor);
+    Inspection? CheckOut(Guid id, string actor);
+
+    // ---- Laudo, assinaturas e contestações ----
+    IReadOnlyList<InspectionReport> Reports { get; }
+    InspectionReport? FindReport(Guid id);
+    InspectionReport? FindReportByNumber(string number);
+    InspectionReport AddReport(InspectionReport report);
+    IReadOnlyList<Signature> GetSignatures(Guid reportId);
+    Signature AddSignature(Signature signature);
+    SignatureRequest AddSignatureRequest(SignatureRequest request);
+    SignatureRequest? FindSignatureRequest(string token);
+    void CompleteSignatureRequest(Guid id);
+    IReadOnlyList<Contestation> Contestations { get; }
+    Contestation AddContestation(Contestation contestation);
+    Contestation? UpdateContestation(Guid id, ContestationStatus status, string? decision, ContestationMessage? message);
 }
 
 public sealed record LoginRequest(string Email, string Password);
 public sealed record CreateProperty(string Title, PropertyType Type, string Address, string Neighborhood, decimal Area, int Bedrooms, int ParkingSpaces, string Owner);
-public sealed record CreateInspection(Guid PropertyId, string Type, DateTime ScheduledAt, string Inspector, Guid? TemplateId);
-public sealed record CreateItem(string Room, string Name);
-public sealed record UpdateItem(ConditionStatus Condition, string Notes);
+public sealed record CreateInspection(Guid PropertyId, string Type, DateTime ScheduledAt, string Inspector, Guid? TemplateId, InspectionKind Kind = InspectionKind.Entrada, Guid? ContractId = null, Guid? PreviousInspectionId = null);
+public sealed record CreateItem(string Room, string Name, bool Required = false);
+public sealed record UpdateItem(ConditionStatus Condition, string Notes, Severity Severity = Severity.Nenhuma, IssueClass IssueClass = IssueClass.NaoClassificado, TestOutcome Test = TestOutcome.NaoTestado, string? Recommendation = null, string? ResponsibleParty = null, DateTime? DueDate = null, decimal EstimatedCost = 0, bool? Required = null);
 public sealed record CreateEvidence(Guid? ItemId, string Room, string DataUrl, decimal? Latitude, decimal? Longitude, decimal? Accuracy);
 public sealed record CreateTemplate(string Name, string Description, PropertyType? PropertyType, IReadOnlyList<TemplateRoom> Rooms);
-public sealed record CreateOccurrence(Guid InspectionId, string Title, string Priority, DateTime DueDate, decimal EstimatedCost);
+public sealed record CreateOccurrence(Guid InspectionId, string Title, string Priority, DateTime DueDate, decimal EstimatedCost, string Responsible = "Imobiliária", Guid? ItemId = null);
+public sealed record UpdateOccurrenceRequest(string Status, string? Resolution);
+public sealed record CreatePerson(string Name, string Document, string Email, string Phone, PartyRole Role);
+public sealed record CreateContract(Guid PropertyId, Guid LandlordId, Guid TenantId, Guid? GuarantorId, DateTime StartsOn, DateTime EndsOn, decimal RentValue, string Guarantee);
+public sealed record CreateMeterReading(UtilityKind Kind, string MeterNumber, decimal Value, string? PhotoUrl);
+public sealed record CreateKeyHandover(string Description, int Quantity, ConditionStatus Condition);
+public sealed record CreateInventoryAsset(string Room, string Name, string Brand, string Model, string SerialNumber, int Quantity, ConditionStatus Condition, decimal ReferenceValue, bool Working);
+public sealed record CheckInRequest(decimal? Latitude, decimal? Longitude);
+public sealed record RequestSignature(string SignerName, string SignerEmail, PartyRole Role, SignatureMethod Method);
+public sealed record SignRequest(string Token, string? Otp, string? ImageDataUrl, decimal? Latitude, decimal? Longitude, bool Refused = false, string? RefusalReason = null);
+public sealed record OpenContestation(Guid InspectionId, Guid? ItemId, string Author, string Reason);
+public sealed record UpdateContestationRequest(ContestationStatus Status, string? Decision, string? Message, string? Author, string? AttachmentUrl);
+
+// Perfis e permissões granulares por função (visualizar, criar, editar, aprovar, assinar, exportar, excluir).
+public static class Permissions
+{
+    public const string View = "visualizar", Create = "criar", Edit = "editar", Approve = "aprovar", Sign = "assinar", Export = "exportar", Delete = "excluir";
+
+    private static readonly Dictionary<string, string[]> ByRole = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Administrador"] = [View, Create, Edit, Approve, Sign, Export, Delete],
+        ["Gestor"] = [View, Create, Edit, Approve, Export],
+        ["Vistoriador"] = [View, Create, Edit, Sign],
+        ["Vistoriador terceirizado"] = [View, Create, Edit],
+        ["Corretor"] = [View, Export],
+        ["Proprietário"] = [View, Sign, Export],
+        ["Locatário"] = [View, Sign, Export],
+        ["Auditor"] = [View, Export]
+    };
+
+    public static string[] For(string role) => ByRole.TryGetValue(role, out var p) ? p : [View];
+    public static bool Allows(string role, string permission) => For(role).Contains(permission);
+}
 
 // Hashing PBKDF2 (SHA-256, 120k iterações, salt de 16 bytes) — formato: iterations.salt.hash em base64
 public static class PasswordHasher
@@ -85,7 +153,7 @@ public sealed class TokenService(IConfiguration config)
         var payload = B64Url(JsonSerializer.SerializeToUtf8Bytes(new { sub = user.Id, email = user.Email, name = user.Name, role = user.Role, exp = expires.ToUnixTimeSeconds() }));
         var signature = B64Url(HMACSHA256.HashData(Key, Encoding.ASCII.GetBytes($"{header}.{payload}")));
         var accessToken = $"{header}.{payload}.{signature}";
-        return new { accessToken, refreshToken = B64Url(RandomNumberGenerator.GetBytes(32)), expiresIn = 28800, user = new { user.Name, user.Email, user.Role } };
+        return new { accessToken, refreshToken = B64Url(RandomNumberGenerator.GetBytes(32)), expiresIn = 28800, user = new { user.Name, user.Email, user.Role, permissions = Permissions.For(user.Role) } };
     }
 
     public Guid? ValidateAndGetUserId(string? token)

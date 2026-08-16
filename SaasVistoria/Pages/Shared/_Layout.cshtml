@@ -1,0 +1,26 @@
+@*
+    Casca HTML de todas as páginas. Mantém <head> num só lugar: fontes, tema, manifesto e ícone.
+    O conteúdo específico entra por RenderBody(); scripts por seção opcional.
+*@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#0f4034">
+    <meta name="description" content="@(ViewData["Description"] ?? "Vistorias de entrada e saída com evidências georreferenciadas, laudo assinado e histórico auditável do imóvel.")">
+    <title>@(ViewData["Title"] ?? "Vistora — vistorias imobiliárias")</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@@9..144,500;9..144,600;9..144,700&family=Inter:wght@@400;500;600;700&family=JetBrains+Mono:wght@@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/app.css">
+    <link rel="manifest" href="~/manifest.webmanifest">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><rect width='40' height='40' rx='11' fill='%230f4034'/><path d='M8 18.5 L20 8.5 L32 18.5' stroke='%23d8a13a' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/><path d='M12.5 22.5 L18 28.5 L28 16.5' stroke='%23fff' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+</head>
+<body>
+    @await Html.PartialAsync("_IconSprite")
+    @RenderBody()
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

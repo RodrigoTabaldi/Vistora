@@ -1,0 +1,156 @@
+@*
+    Diálogos da aplicação. Todos seguem o mesmo contrato de acessibilidade, aplicado por app.js:
+    role="dialog" + aria-modal, título referenciado por aria-labelledby, foco preso enquanto aberto,
+    Esc fecha e o foco volta para o elemento que abriu.
+*@
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo" hidden>
+    <form class="modal-box" id="inspectionForm" novalidate>
+        <button type="button" class="modal-close" data-close="modal">
+            <span class="sr-only">Fechar</span>
+            <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-fechar" /></svg>
+        </button>
+
+        <p class="eyebrow">Nova operação</p>
+        <h2 id="modalTitulo">Agendar vistoria</h2>
+        <p class="modal-lede">Escolha o imóvel e o modelo: o checklist já entra montado no celular do vistoriador.</p>
+
+        <div class="field">
+            <label for="propertyId">Imóvel</label>
+            <select id="propertyId" required></select>
+        </div>
+
+        <div class="field">
+            <label for="inspectionType">Tipo de vistoria</label>
+            <select id="inspectionType">
+                <option value="Entrada">Vistoria de entrada</option>
+                <option value="Saida">Vistoria de saída</option>
+                <option value="Periodica">Vistoria periódica</option>
+                <option value="Manutencao">Vistoria de manutenção</option>
+                <option value="Recebimento">Recebimento de chaves da construtora</option>
+                <option value="PreCompraVenda">Vistoria pré-compra ou pré-venda</option>
+                <option value="Captacao">Vistoria de captação</option>
+                <option value="Temporada">Locação por temporada</option>
+                <option value="Sinistro">Vistoria de sinistro</option>
+                <option value="InspecaoPredial">Inspeção predial técnica (profissional habilitado)</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="contractId">Contrato de locação</label>
+            <select id="contractId"><option value="">Sem contrato vinculado</option></select>
+        </div>
+
+        <div class="field hidden" id="previousField">
+            <label for="previousInspectionId">Vistoria de entrada correspondente</label>
+            <select id="previousInspectionId" aria-describedby="kindHint previousInspectionIdErro"><option value="">Selecione</option></select>
+            <p class="field-error" id="previousInspectionIdErro" data-error-for="previousInspectionId"></p>
+        </div>
+        <p class="field-hint hidden" id="kindHint"></p>
+
+        <div class="field">
+            <label for="templateId">Modelo de checklist</label>
+            <select id="templateId" aria-describedby="templateHint"><option value="">Começar em branco</option></select>
+            <p class="field-hint" id="templateHint">Escolha um modelo para pré-carregar ambientes e tópicos.</p>
+        </div>
+
+        <div class="two-col">
+            <div class="field">
+                <label for="scheduledAt">Data e hora</label>
+                <input id="scheduledAt" type="datetime-local" required aria-describedby="scheduledAtErro">
+                <p class="field-error" id="scheduledAtErro" data-error-for="scheduledAt"></p>
+            </div>
+            <div class="field">
+                <label for="inspector">Vistoriador</label>
+                <input id="inspector" value="Lucas Mendes" required aria-describedby="inspectorErro">
+                <p class="field-error" id="inspectorErro" data-error-for="inspector"></p>
+            </div>
+        </div>
+
+        <button class="btn btn--primary btn--block" type="submit">
+            Criar vistoria
+            <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-seta" /></svg>
+        </button>
+    </form>
+</div>
+
+<div class="modal" id="propertyModal" role="dialog" aria-modal="true" aria-labelledby="propertyModalTitulo" hidden>
+    <form class="modal-box" id="propertyForm" novalidate>
+        <button type="button" class="modal-close" data-close="propertyModal">
+            <span class="sr-only">Fechar</span>
+            <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-fechar" /></svg>
+        </button>
+
+        <p class="eyebrow">Novo imóvel</p>
+        <h2 id="propertyModalTitulo">Adicionar ao portfólio</h2>
+
+        <div class="field">
+            <label for="newPropertyTitle">Nome do imóvel</label>
+            <input id="newPropertyTitle" placeholder="Ex.: Apartamento Horizonte 602" required aria-describedby="newPropertyTitleErro">
+            <p class="field-error" id="newPropertyTitleErro" data-error-for="newPropertyTitle"></p>
+        </div>
+
+        <div class="field">
+            <label for="newPropertyType">Tipo</label>
+            <select id="newPropertyType">
+                <option>Apartamento</option><option>Casa</option><option>Comercial</option>
+                <option>Terreno</option><option>Condominio</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="newPropertyAddress">Endereço</label>
+            <input id="newPropertyAddress" required aria-describedby="newPropertyAddressErro">
+            <p class="field-error" id="newPropertyAddressErro" data-error-for="newPropertyAddress"></p>
+        </div>
+
+        <div class="field">
+            <label for="newPropertyNeighborhood">Bairro e cidade</label>
+            <input id="newPropertyNeighborhood" placeholder="Vila Madalena · São Paulo" required aria-describedby="newPropertyNeighborhoodErro">
+            <p class="field-error" id="newPropertyNeighborhoodErro" data-error-for="newPropertyNeighborhood"></p>
+        </div>
+
+        <div class="two-col">
+            <div class="field">
+                <label for="newPropertyArea">Área (m²)</label>
+                <input id="newPropertyArea" type="number" min="1" required aria-describedby="newPropertyAreaErro">
+                <p class="field-error" id="newPropertyAreaErro" data-error-for="newPropertyArea"></p>
+            </div>
+            <div class="field">
+                <label for="newPropertyBedrooms">Quartos</label>
+                <input id="newPropertyBedrooms" type="number" min="0" value="0">
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="newPropertyOwner">Proprietário</label>
+            <input id="newPropertyOwner" required aria-describedby="newPropertyOwnerErro">
+            <p class="field-error" id="newPropertyOwnerErro" data-error-for="newPropertyOwner"></p>
+        </div>
+
+        <button class="btn btn--primary btn--block" type="submit">
+            Adicionar imóvel
+            <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-seta" /></svg>
+        </button>
+    </form>
+</div>
+
+<div class="modal" id="simpleModal" role="dialog" aria-modal="true" aria-labelledby="simpleModalContent" hidden>
+    <div class="modal-box">
+        <button type="button" class="modal-close" data-close="simpleModal">
+            <span class="sr-only">Fechar</span>
+            <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-fechar" /></svg>
+        </button>
+        <div id="simpleModalContent"></div>
+    </div>
+</div>
+
+<div class="modal" id="templateModal" role="dialog" aria-modal="true" aria-labelledby="templateModalContent" hidden>
+    <div class="modal-box modal-box--wide">
+        <button type="button" class="modal-close" data-close="templateModal">
+            <span class="sr-only">Fechar</span>
+            <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-fechar" /></svg>
+        </button>
+        <div id="templateModalContent"></div>
+    </div>
+</div>

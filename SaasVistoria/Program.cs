@@ -6,6 +6,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+// O front-end é servido por Razor Pages: a casca fica em Pages/Index.cshtml e os blocos
+// reutilizáveis (cabeçalho, navegação, modais, ícones) em partial views compartilhadas.
+builder.Services.AddRazorPages();
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<IVistoraStore, DemoVistoraStore>();
 builder.Services.AddSingleton<TokenService>();
@@ -19,7 +22,6 @@ app.UseExceptionHandler(error => error.Run(async context =>
     await context.Response.WriteAsJsonAsync(new { title = "Não foi possível concluir esta operação.", traceId = context.TraceIdentifier, detail = app.Environment.IsDevelopment() ? exception?.Message : null });
 }));
 app.UseHttpsRedirection();
-app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseCors();
 
@@ -27,7 +29,7 @@ app.UseCors();
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
-    if (path.StartsWithSegments("/api") && !path.StartsWithSegments("/api/auth"))
+    if (path.StartsWithSegments("/api") && !path.StartsWithSegments("/api/auth") && !path.StartsWithSegments("/api/publico"))
     {
         var tokens = context.RequestServices.GetRequiredService<TokenService>();
         var header = context.Request.Headers.Authorization.ToString();
@@ -48,5 +50,7 @@ app.Use(async (context, next) =>
 
 app.MapOpenApi();
 app.MapControllers();
-app.MapFallbackToFile("index.html");
+app.MapRazorPages();
+// Rotas desconhecidas caem na casca do app (navegação por hash é resolvida no cliente).
+app.MapFallbackToPage("/Index");
 app.Run();

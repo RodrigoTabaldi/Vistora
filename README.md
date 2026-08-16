@@ -51,6 +51,20 @@ Os ambientes são completos: banheiro tem 14 tópicos (box, vedação, ralo, sif
 
 Além disso, a imobiliária **cria seus próprios modelos** pelo construtor visual — adiciona ambientes, tópicos e salva como padrão da casa.
 
+### Ciclo completo da locação
+- **Contratos e partes** — locador, locatário, fiador e procurador; documento exibido mascarado (LGPD)
+- **Tipos de vistoria** — entrada, saída, periódica, manutenção, recebimento de chaves, pré-compra/venda, captação, temporada, sinistro e inspeção predial
+- **Check-in/check-out em campo** com data, hora e GPS
+- **Medidores, chaves e inventário** de imóvel mobiliado registrados por vistoria
+- **Item enriquecido** — severidade, classificação (desgaste natural, dano do locatário, vício construtivo…), teste realizado, responsável, prazo, custo estimado e recomendação
+- **Bloqueios de conclusão** — saída sem entrada vinculada, item obrigatório em branco, dano sem foto, checklist vazio; alertas para medidores/chaves ausentes e data fora da vigência
+- **Comparação entrada × saída** item a item, com constatação (novo dano, melhoria, item removido) e classificação sugerida — sempre sujeita à validação humana
+- **Laudo versionado** em HTML pronto para impressão/PDF, com número, versão, hash SHA-256 e URL de validação pública; laudo emitido nunca é sobrescrito
+- **Assinatura eletrônica** — desenho em tela por link com prazo e código OTP, registrando IP, dispositivo, data/hora, geolocalização e hash vinculado ao documento; recusa registra o motivo
+- **Contestações** com prazo configurável, conversa com anexos, decisão fundamentada e histórico preservado
+- **Funcionamento offline** — PWA que baixa antecipadamente as vistorias em aberto: no imóvel, sem sinal, a vistoria abre e é preenchida; as alterações entram numa fila local com indicador de pendências e sobem sozinhas na reconexão
+- **Permissões por função** — visualizar, criar, editar, aprovar, assinar, exportar e excluir
+
 ### Gestão
 - **Painel** com métricas calculadas em tempo real, operação do dia e linha do tempo
 - **Portfólio de imóveis** com busca por nome ou bairro
@@ -58,10 +72,12 @@ Além disso, a imobiliária **cria seus próprios modelos** pelo construtor visu
 - **Ocorrências** de manutenção com prioridade, prazo e custo estimado
 - **Auditoria** — todo evento relevante registra ação, entidade, autor e detalhe
 
-### Interface
-- Responsiva de verdade: barra superior com indicador animado no desktop, menu sanduíche e dock inferior no celular
-- Tipografia ampliada (base 17px) pensada para uso sob sol, em pé, com uma mão
-- Respeita `prefers-reduced-motion`
+### Interface e acessibilidade
+- **Sistema visual em tokens** (cor, escala tipográfica, espaço de 4px, elevação, movimento) num só arquivo `app.css`
+- **Navegação em dois níveis**: o que se usa todo dia na barra; cadastros e documentos no menu "Mais". No celular, dock de polegar + painel agrupado por seção
+- **Ícones em SVG** herdando `currentColor`, no lugar dos caracteres tipográficos que variavam por sistema
+- **WCAG 2.2 AA**: contraste conferido par a par, foco visível único, atalho "ir para o conteúdo", diálogos com foco preso e devolvido, erro por campo ligado por `aria-describedby`, estado nunca só por cor, alvos de toque ≥44px
+- Movimento discreto e sempre condicionado a `prefers-reduced-motion`; suporte a `forced-colors`
 
 ---
 
@@ -121,14 +137,27 @@ Controllers  →  Application (IVistoraStore)  ←  Infrastructure (DemoVistoraS
 ```
 SaasVistoria/
 ├── Domain/Models.cs                    entidades (records imutáveis) e enums
-├── Application/Contracts.cs            IVistoraStore, DTOs, TokenService, PasswordHasher
+├── Application/
+│   ├── Contracts.cs                    IVistoraStore, DTOs, TokenService, PasswordHasher, Permissions
+│   ├── InspectionServices.cs           regras de conclusão, comparação e renderização do laudo
+│   └── RequirePermission.cs            filtro de autorização por permissão granular
 ├── Infrastructure/
 │   ├── DemoVistoraStore.cs             implementação em memória, thread-safe
+│   ├── DemoVistoraStore.Fluxo.cs       partes, contratos, medidores, laudos, assinaturas, contestações
 │   └── TemplateCatalog.cs              catálogo dos 14 modelos padrão
+├── Pages/                              casca HTML em Razor Pages
+│   ├── Index.cshtml                    "/" — aplicação
+│   ├── Assinar.cshtml                  "/assinar" — assinatura pública
+│   └── Shared/                         _Layout, _IconSprite, _LoginScreen,
+│                                       _AppHeader, _MobileNav, _Modals
 ├── Controllers/
 │   ├── AuthController.cs               /api/auth/*
-│   └── VistoraController.cs            demais rotas /api/*
-├── wwwroot/                            front-end (index.html, app.js, app.css)
+│   ├── VistoraController.cs            imóveis, vistorias, checklist, evidências, ocorrências
+│   ├── FluxoController.cs              partes, contratos, medidores, chaves, inventário, check-in, comparação
+│   ├── LaudoController.cs              laudos versionados, assinaturas e contestações
+│   └── PublicoController.cs            /api/publico/* — validação de laudo e assinatura por link (sem token)
+├── wwwroot/                            comportamento e estilo (app.css, app.js, vistoria.js,
+│                                       assinar.js, sw.js, manifest.webmanifest)
 └── Program.cs                          DI, CORS, middleware de autenticação
 ```
 
@@ -158,6 +187,22 @@ Todas as rotas `/api/*` — exceto `/api/auth/*` — exigem token **Bearer**. Fa
 | `GET` `POST` | `/api/occurrences` | Manutenção e pendências |
 | `PUT` | `/api/occurrences/{id}/status` | Atualizar status da ocorrência |
 | `GET` | `/api/dashboard` | Indicadores calculados, agenda e auditoria |
+| `GET` | `/api/me` | Usuário da sessão e suas permissões |
+| `GET` `POST` | `/api/people` | Partes (locador, locatário, fiador…) — documento mascarado na leitura |
+| `GET` `POST` | `/api/contracts` | Contratos de locação vinculados a imóvel e partes |
+| `GET` `POST` | `/api/inspections/{id}/meters` | Leituras de água, energia e gás |
+| `GET` `POST` | `/api/inspections/{id}/keys` | Relação de chaves e controles |
+| `GET` `POST` | `/api/inspections/{id}/inventory` | Inventário de imóvel mobiliado |
+| `POST` | `/api/inspections/{id}/check-in` `check-out` | Registro de presença com GPS |
+| `GET` | `/api/inspections/{id}/validacao` | Bloqueios e alertas antes de concluir |
+| `GET` | `/api/inspections/{id}/comparacao` | Comparação entrada × saída item a item |
+| `GET` `POST` | `/api/inspections/{id}/laudos` | Versões emitidas e emissão de nova versão |
+| `GET` | `/api/inspections/{id}/laudos/previa` | Prévia do laudo (HTML, não selada) |
+| `GET` | `/api/laudos/{id}/html` | Laudo selado com as assinaturas anexadas |
+| `POST` | `/api/laudos/{id}/assinaturas/solicitar` | Convite de assinatura por link + OTP |
+| `GET` `POST` `PUT` | `/api/contestacoes` | Contestações, conversa e decisão |
+| `GET` | `/api/publico/laudos/{numero}` | **Sem token** — validação pública de autenticidade |
+| `GET` `POST` | `/api/publico/assinaturas` | **Sem token** — assinatura por link com prazo |
 
 ### Exemplo
 
@@ -189,7 +234,11 @@ curl -X POST http://localhost:5062/api/inspections \
 
 Este ainda é um projeto em evolução. Não assuma como produção:
 
-- Persistência **em memória** — os dados não sobrevivem a um restart
+- Persistência **em memória** — os dados não sobrevivem a um restart (inclusive laudos e assinaturas)
+- **Laudo em PDF** é gerado a partir do HTML pelo navegador (imprimir → salvar em PDF); não há PDF/A, DOCX nem QR Code impresso
+- **Notificações** (e-mail, SMS, WhatsApp) não estão integradas: o link e o OTP de assinatura aparecem na própria tela
+- **Offline** usa `localStorage` sem criptografia local (fila de gravações + cópia das leituras); fotos capturadas offline ainda não entram na fila
+- Não implementados desta especificação: roteirização por mapa, OCR/IA de imagens, integrações (CRM, ERP, calendários), portal dedicado de locador/locatário, 2FA e exportações CSV/XLSX/DOCX
 - **Multi-tenancy** não aplicada: as entidades carregam `CompanyId`, mas não há filtro por tenant (o store atende uma empresa)
 - Refresh token é emitido, mas **não persistido**
 - **CORS aberto** (`AllowAnyOrigin`)
@@ -202,10 +251,10 @@ Este ainda é um projeto em evolução. Não assuma como produção:
 Roadmap, em ordem de prioridade:
 
 1. **EF Core + Npgsql** implementando `IVistoraStore`, com migrations e filtro global por `CompanyId`
-2. **Laudo em PDF** com fotos, hashes e assinatura digital das partes
-3. **Blob storage** (Azure Blob / S3) para as evidências
-4. **Comparativo entrada × saída** — o relatório que fecha o ciclo da locação
-5. Refresh token persistido, rate limiting e CORS restrito
+2. **PDF real no servidor** (hoje o laudo é HTML pronto para imprimir/salvar em PDF pelo navegador) e QR Code de validação impresso no documento
+3. **Blob storage** (Azure Blob / S3) para as evidências, com URLs assinadas e expiração
+4. **Assinatura ICP-Brasil** via provedor externo, além da assinatura eletrônica avançada já implementada
+5. Refresh token persistido, 2FA, rate limiting e CORS restrito
 6. Segredos em cofre (Key Vault / Secrets Manager)
 7. Observabilidade com OpenTelemetry / Serilog
 8. Testes de integração com PostgreSQL efêmero

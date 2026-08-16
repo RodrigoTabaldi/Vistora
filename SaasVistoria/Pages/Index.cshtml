@@ -1,0 +1,45 @@
+@page "/"
+@{
+    ViewData["Title"] = "Vistora — vistorias imobiliárias";
+    Layout = "_Layout";
+}
+
+<a class="skip-link" href="#pageContent">Ir para o conteúdo</a>
+
+@await Html.PartialAsync("_LoginScreen")
+
+<div class="app-shell hidden" id="appShell">
+    @await Html.PartialAsync("_AppHeader")
+
+    <main id="conteudo">
+        <div class="page-head">
+            <div class="page-head-copy">
+                <p class="crumb" id="crumb">Operação</p>
+                <h1 id="pageTitle">Painel</h1>
+                <p class="page-lede" id="pageSubtitle"></p>
+            </div>
+            <div class="header-side" id="headerSide"></div>
+        </div>
+
+        @* Mudança de tela é anunciada aqui para quem usa leitor de tela. *@
+        <p class="sr-only" id="viewAnnouncer" role="status" aria-live="polite"></p>
+
+        <section id="pageContent" tabindex="-1"></section>
+
+        <footer class="app-footer">
+            <svg class="logo-mark logo-mark--sm" aria-hidden="true" focusable="false"><use href="#logomark" /></svg>
+            <span>Vistora · plataforma de vistoria imobiliária</span>
+        </footer>
+    </main>
+
+    @await Html.PartialAsync("_MobileNav")
+</div>
+
+@await Html.PartialAsync("_Modals")
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+@section Scripts {
+    <script src="~/app.js"></script>
+    <script src="~/vistoria.js"></script>
+}

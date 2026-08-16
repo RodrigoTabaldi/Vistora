@@ -1,0 +1,83 @@
+@page "/assinar"
+@{
+    ViewData["Title"] = "Assinatura do laudo — Vistora";
+    ViewData["Description"] = "Assinatura eletrônica do laudo de vistoria, com registro de data, hora, dispositivo e hash do documento.";
+    Layout = "_Layout";
+}
+
+<a class="skip-link" href="#assinatura">Ir para o conteúdo</a>
+
+<main class="sign-page" id="assinatura">
+    <span class="logo">
+        <svg class="logo-mark" aria-hidden="true" focusable="false"><use href="#logomark" /></svg>
+        <span class="logo-type">vistora<small>VISTORIA IMOBILIÁRIA</small></span>
+    </span>
+
+    <h1>Assinatura eletrônica do laudo</h1>
+    <p class="sign-status" id="intro" role="status" aria-live="polite">Verificando o convite…</p>
+
+    <section class="sign-card hidden" id="signBox" aria-labelledby="signBoxTitulo">
+        <h2 class="sr-only" id="signBoxTitulo">Dados do documento e assinatura</h2>
+
+        <dl class="detail-box" id="details"></dl>
+
+        <div class="field hidden" id="otpField">
+            <label for="otp">Código de verificação enviado a você</label>
+            <input id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                   aria-describedby="otpHint otpErro">
+            <p class="field-hint" id="otpHint">São 6 dígitos, exclusivos deste convite.</p>
+            <p class="field-error" id="otpErro" data-error-for="otp"></p>
+        </div>
+
+        <div class="field">
+            <p class="sign-label" id="padLabel">Desenhe sua assinatura no quadro</p>
+            <canvas id="pad" role="img" aria-labelledby="padLabel" aria-describedby="padHint"></canvas>
+            <p class="field-hint" id="padHint">
+                Use o dedo, o mouse ou a caneta. Se preferir não desenhar, você pode
+                <button type="button" class="link-btn" id="typedBtn">assinar digitando seu nome</button>.
+            </p>
+            <div class="field hidden" id="typedField">
+                <label for="typedName">Nome completo para assinar</label>
+                <input id="typedName" autocomplete="name">
+            </div>
+            <p class="field-error" id="padErro" role="alert"></p>
+        </div>
+
+        <div class="sign-actions">
+            <button class="btn btn--primary" type="button" id="signBtn">
+                <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-check" /></svg>Assinar laudo
+            </button>
+            <button class="btn btn--quiet" type="button" id="clearBtn">Limpar</button>
+            <button class="btn btn--quiet btn--danger" type="button" id="refuseBtn">Recusar assinatura</button>
+        </div>
+
+        <p class="legal">
+            Ao assinar são registrados seu nome, e-mail, data e hora, endereço IP, dispositivo e —
+            se você autorizar — a geolocalização, todos vinculados ao hash do documento.
+            Este laudo organiza constatações visuais e <strong>não substitui parecer técnico ou perícia</strong>
+            de profissional legalmente habilitado.
+        </p>
+    </section>
+
+    <div class="modal" id="refuseModal" role="dialog" aria-modal="true" aria-labelledby="refuseTitulo" hidden>
+        <form class="modal-box" id="refuseForm" novalidate>
+            <button type="button" class="modal-close" data-close="refuseModal">
+                <span class="sr-only">Fechar</span>
+                <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-fechar" /></svg>
+            </button>
+            <p class="eyebrow">Recusa</p>
+            <h2 id="refuseTitulo">Registrar recusa de assinatura</h2>
+            <p class="modal-lede">A recusa fica registrada no laudo com o motivo informado. As partes são notificadas.</p>
+            <div class="field">
+                <label for="refuseReason">Motivo da recusa</label>
+                <textarea id="refuseReason" rows="4" required aria-describedby="refuseReasonErro"></textarea>
+                <p class="field-error" id="refuseReasonErro" data-error-for="refuseReason"></p>
+            </div>
+            <button class="btn btn--primary btn--block" type="submit">Registrar recusa</button>
+        </form>
+    </div>
+</main>
+
+@section Scripts {
+    <script src="~/assinar.js"></script>
+}

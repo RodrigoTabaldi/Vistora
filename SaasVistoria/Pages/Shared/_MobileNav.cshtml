@@ -1,0 +1,42 @@
+@*
+    Navegação de celular em duas peças:
+    · dock fixo com as 4 rotas de campo + ação primária, sempre ao alcance do polegar;
+    · painel completo, agrupado por seção, aberto pelo botão de menu.
+    Ambos usam alvo de toque de 48px e marcam a rota atual com aria-current, não só com cor.
+*@
+<div class="mobile-sheet" id="mobileSheet" hidden>
+    <nav aria-label="Navegação completa">
+        <p class="menu-group">Operação</p>
+        <a href="#painel" data-view="dashboard"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-painel" /></svg>Painel</a>
+        <a href="#vistorias" data-view="inspections"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-vistoria" /></svg>Vistorias</a>
+        <a href="#agenda" data-view="agenda"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-agenda" /></svg>Agenda</a>
+        <a href="#ocorrencias" data-view="occurrences"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-alerta" /></svg>Ocorrências</a>
+
+        <p class="menu-group">Documentos</p>
+        <a href="#laudos" data-view="reports"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-laudo" /></svg>Laudos</a>
+        <a href="#contestacoes" data-view="contestations"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-contestacao" /></svg>Contestações</a>
+
+        <p class="menu-group">Cadastros</p>
+        <a href="#imoveis" data-view="properties"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-imovel" /></svg>Imóveis</a>
+        <a href="#contratos" data-view="contracts"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-contrato" /></svg>Contratos e partes</a>
+        <a href="#modelos" data-view="templates"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-modelo" /></svg>Modelos de checklist</a>
+
+        <p class="menu-group">Conta</p>
+        <a href="#equipe" data-view="team"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-equipe" /></svg>Equipe e acesso</a>
+        <a href="#config" data-view="settings"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-config" /></svg>Configurações</a>
+    </nav>
+    <button class="btn btn--quiet sheet-out" id="logoutBtnMobile">
+        <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-sair" /></svg>Sair da conta
+    </button>
+</div>
+
+<nav class="mobile-dock" aria-label="Navegação rápida">
+    <button type="button" data-view="dashboard"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-painel" /></svg><span>Painel</span></button>
+    <button type="button" data-view="inspections"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-vistoria" /></svg><span>Vistorias</span></button>
+    <button type="button" class="dock-create" id="dockCreate">
+        <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-mais" /></svg>
+        <span class="sr-only">Nova vistoria</span>
+    </button>
+    <button type="button" data-view="properties"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-imovel" /></svg><span>Imóveis</span></button>
+    <button type="button" data-view="occurrences"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-alerta" /></svg><span>Alertas</span></button>
+</nav>

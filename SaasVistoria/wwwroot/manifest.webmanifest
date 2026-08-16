@@ -1,0 +1,20 @@
+{
+  "name": "Vistora — vistorias imobiliárias",
+  "short_name": "Vistora",
+  "description": "Vistorias de entrada e saída com evidências, laudo e assinatura — funciona offline em campo.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d3b33",
+  "theme_color": "#0d3b33",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%230d3b33'/%3E%3Cpath d='M8 18.5 L20 8.5 L32 18.5' stroke='%23e0a93f' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12.5 22.5 L18 28.5 L28 16.5' stroke='%23fff' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
