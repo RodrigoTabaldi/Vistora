@@ -109,6 +109,16 @@ public sealed class DemoVistoraStore : IVistoraStore
         static int NumberOf(Inspection x) => int.TryParse(x.Code.Split('-').Last(), out var n) ? n : 0;
     }
 
+    // Compartilhado por CompleteInspection e RecalcCompletion — cada chamador decide separadamente
+    // o percentual para uma vistoria sem nenhum item (100% ao concluir explicitamente, 0% recém-criada).
+    private static (int Evaluated, int Pending, int PercentOfEvaluated) EvaluateItems(IReadOnlyList<InspectionItem> items)
+    {
+        var evaluated = items.Count(i => i.Condition != ConditionStatus.NaoAvaliado);
+        var pending = items.Count(i => i.Condition is ConditionStatus.Ruim or ConditionStatus.Danificado);
+        var percent = items.Count == 0 ? 0 : (int)Math.Round(evaluated * 100.0 / items.Count);
+        return (evaluated, pending, percent);
+    }
+
     public Inspection? CompleteInspection(Guid id, string actor)
     {
         lock (_gate)
@@ -116,9 +126,8 @@ public sealed class DemoVistoraStore : IVistoraStore
             var idx = _inspections.FindIndex(i => i.Id == id);
             if (idx < 0) return null;
             var items = _items.GetValueOrDefault(id) ?? [];
-            var evaluated = items.Count(i => i.Condition != ConditionStatus.NaoAvaliado);
-            var pending = items.Count(i => i.Condition is ConditionStatus.Ruim or ConditionStatus.Danificado);
-            var completion = items.Count == 0 ? 100 : (int)Math.Round(evaluated * 100.0 / items.Count);
+            var (_, pending, percent) = EvaluateItems(items);
+            var completion = items.Count == 0 ? 100 : percent;
             var updated = _inspections[idx] with { Status = InspectionStatus.EmRevisao, Completion = completion, PendingItems = pending };
             _inspections[idx] = updated;
             Log("Concluiu vistoria", updated.Code, actor, $"{completion}% preenchido · {pending} pendência(s)");
@@ -172,9 +181,7 @@ public sealed class DemoVistoraStore : IVistoraStore
         lock (_gate)
         {
             var list = _evidence.TryGetValue(inspectionId, out var l) ? l : _evidence[inspectionId] = [];
-            var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(r.DataUrl + DateTime.UtcNow.Ticks));
-            var shortHash = $"SHA-256: {Convert.ToHexString(hash)[..4].ToLowerInvariant()}...{Convert.ToHexString(hash)[^4..].ToLowerInvariant()}";
-            var evidence = new Evidence(Guid.NewGuid(), inspectionId, r.ItemId, r.Room, r.DataUrl, DateTime.Now, r.Latitude, r.Longitude, r.Accuracy, shortHash, capturedBy);
+            var evidence = new Evidence(Guid.NewGuid(), inspectionId, r.ItemId, r.Room, r.DataUrl, DateTime.Now, r.Latitude, r.Longitude, r.Accuracy, ComputeIntegrityHash(r.DataUrl), capturedBy);
             list.Add(evidence);
             if (r.ItemId is { } itemId && _items.TryGetValue(inspectionId, out var items))
             {
@@ -183,6 +190,16 @@ public sealed class DemoVistoraStore : IVistoraStore
             }
             return evidence;
         }
+    }
+
+    // Hash sobre os bytes reais da imagem (payload base64 após a vírgula do data URL), nunca
+    // sobre o timestamp — precisa ser reproduzível para servir como prova de integridade.
+    public static string ComputeIntegrityHash(string dataUrl)
+    {
+        var comma = dataUrl.IndexOf(',');
+        var base64Payload = comma >= 0 ? dataUrl[(comma + 1)..] : dataUrl;
+        var hash = System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(base64Payload));
+        return $"SHA-256:{Convert.ToHexString(hash).ToLowerInvariant()}";
     }
 
     public InspectionTemplate AddTemplate(CreateTemplate r)
@@ -234,12 +251,10 @@ public sealed class DemoVistoraStore : IVistoraStore
         var idx = _inspections.FindIndex(i => i.Id == inspectionId);
         if (idx < 0) return;
         var items = _items.GetValueOrDefault(inspectionId) ?? [];
-        var evaluated = items.Count(i => i.Condition != ConditionStatus.NaoAvaliado);
-        var pending = items.Count(i => i.Condition is ConditionStatus.Ruim or ConditionStatus.Danificado);
-        var completion = items.Count == 0 ? 0 : (int)Math.Round(evaluated * 100.0 / items.Count);
+        var (evaluated, pending, percent) = EvaluateItems(items);
         var status = _inspections[idx].Status;
         if (status is InspectionStatus.Agendada && evaluated > 0) status = InspectionStatus.EmAndamento;
-        _inspections[idx] = _inspections[idx] with { Completion = completion, PendingItems = pending, Status = status };
+        _inspections[idx] = _inspections[idx] with { Completion = percent, PendingItems = pending, Status = status };
     }
 
     private void Log(string action, string entity, string actor, string detail)

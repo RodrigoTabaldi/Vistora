@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using SaasVistoria.Application;
 using SaasVistoria.Domain;
 using SaasVistoria.Infrastructure;
@@ -10,6 +11,17 @@ builder.Services.AddOpenApi();
 builder.Services.AddSingleton<IVistoraStore, DemoVistoraStore>();
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddCors(options => options.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+// Limita tentativas de login por IP — mitiga força bruta contra /api/auth/login
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddFixedWindowLimiter("login", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+});
 
 var app = builder.Build();
 app.UseExceptionHandler(error => error.Run(async context =>
@@ -22,6 +34,7 @@ app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseCors();
+app.UseRateLimiter();
 
 // Autenticação por token assinado (JWT HS256) — protege todas as rotas /api exceto /api/auth
 app.Use(async (context, next) =>

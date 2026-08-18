@@ -69,23 +69,45 @@ public static class PasswordHasher
     }
 }
 
+public sealed record UserSummary(string Name, string Email, string Role);
+public sealed record TokenResponse(string AccessToken, string RefreshToken, int ExpiresIn, UserSummary User);
+
 // JWT assinado com HMAC-SHA256 (sem dependências externas)
-public sealed class TokenService(IConfiguration config)
+public sealed class TokenService
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    private byte[] Key => Encoding.UTF8.GetBytes(config["Jwt:Key"] is { Length: >= 32 } k ? k : "vistora-chave-de-desenvolvimento-local-minimo-32-caracteres");
+    private readonly byte[] _key;
+
+    // Nunca usa uma chave padrão gravada no código: fora de Development, uma Jwt:Key ausente
+    // impede a aplicação de subir (ver README/CLAUDE.md — bypass de autenticação corrigido).
+    public TokenService(IConfiguration config, IHostEnvironment env)
+    {
+        if (config["Jwt:Key"] is { Length: >= 32 } configured)
+        {
+            _key = Encoding.UTF8.GetBytes(configured);
+        }
+        else if (env.IsDevelopment())
+        {
+            _key = RandomNumberGenerator.GetBytes(32);
+            Console.Error.WriteLine("[Vistora] AVISO: Jwt:Key não configurada — usando uma chave aleatória gerada só para esta execução (Development). Sessões não sobrevivem a um restart. Configure Jwt:Key (>= 32 caracteres) antes de implantar fora de Development.");
+        }
+        else
+        {
+            throw new InvalidOperationException("Jwt:Key não configurada. Defina a configuração 'Jwt:Key' (ou a variável de ambiente Jwt__Key) com um segredo de ao menos 32 caracteres antes de iniciar fora do ambiente Development.");
+        }
+    }
 
     private static string B64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     private static byte[] FromB64Url(string s) => Convert.FromBase64String(s.Replace('-', '+').Replace('_', '/').PadRight(s.Length + (4 - s.Length % 4) % 4, '='));
 
-    public object Create(AppUser user)
+    public TokenResponse Create(AppUser user)
     {
         var expires = DateTimeOffset.UtcNow.AddHours(8);
         var header = B64Url(JsonSerializer.SerializeToUtf8Bytes(new { alg = "HS256", typ = "JWT" }));
         var payload = B64Url(JsonSerializer.SerializeToUtf8Bytes(new { sub = user.Id, email = user.Email, name = user.Name, role = user.Role, exp = expires.ToUnixTimeSeconds() }));
-        var signature = B64Url(HMACSHA256.HashData(Key, Encoding.ASCII.GetBytes($"{header}.{payload}")));
+        var signature = B64Url(HMACSHA256.HashData(_key, Encoding.ASCII.GetBytes($"{header}.{payload}")));
         var accessToken = $"{header}.{payload}.{signature}";
-        return new { accessToken, refreshToken = B64Url(RandomNumberGenerator.GetBytes(32)), expiresIn = 28800, user = new { user.Name, user.Email, user.Role } };
+        return new TokenResponse(accessToken, B64Url(RandomNumberGenerator.GetBytes(32)), 28800, new UserSummary(user.Name, user.Email, user.Role));
     }
 
     public Guid? ValidateAndGetUserId(string? token)
@@ -93,7 +115,7 @@ public sealed class TokenService(IConfiguration config)
         if (string.IsNullOrWhiteSpace(token)) return null;
         var parts = token.Split('.');
         if (parts.Length != 3) return null;
-        var expected = B64Url(HMACSHA256.HashData(Key, Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}")));
+        var expected = B64Url(HMACSHA256.HashData(_key, Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}")));
         if (!CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(expected), Encoding.ASCII.GetBytes(parts[2]))) return null;
         try
         {

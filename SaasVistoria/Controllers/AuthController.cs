@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SaasVistoria.Application;
 
 namespace SaasVistoria.Controllers;
 [ApiController, Route("api/auth")]
 public sealed class AuthController(IVistoraStore store, TokenService tokens) : ControllerBase
 {
-    [HttpPost("login")]
+    [HttpPost("login"), EnableRateLimiting("login")]
     public IActionResult Login(LoginRequest request) =>
         store.Validate(request.Email, request.Password) is { } user
             ? Ok(tokens.Create(user))

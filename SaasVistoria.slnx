@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="SaasVistoria/SaasVistoria.csproj" />
+  <Project Path="SaasVistoria.Tests/SaasVistoria.Tests.csproj" />
 </Solution>

@@ -75,7 +75,7 @@ Além disso, a imobiliária **cria seus próprios modelos** pelo construtor visu
 | Persistência | Em memória (`DemoVistoraStore`) — trocável por EF Core/PostgreSQL |
 | Container | Docker + Docker Compose (API + Postgres 16) |
 
-Dependência NuGet única: `Microsoft.AspNetCore.OpenApi`. Sem CDN de JavaScript, sem `node_modules`.
+Dependências NuGet diretas: `Microsoft.AspNetCore.OpenApi` e `Microsoft.OpenApi` (fixada em versão corrigida — ver `SaasVistoria.csproj`). Sem CDN de JavaScript, sem `node_modules`.
 
 ---
 
@@ -127,9 +127,14 @@ SaasVistoria/
 │   └── TemplateCatalog.cs              catálogo dos 14 modelos padrão
 ├── Controllers/
 │   ├── AuthController.cs               /api/auth/*
-│   └── VistoraController.cs            demais rotas /api/*
+│   ├── VistoraApiControllerBase.cs     base com CurrentActor e paginação (PagedOk)
+│   ├── DashboardController.cs          /api/dashboard
+│   ├── PropertiesController.cs         /api/properties
+│   ├── TemplatesController.cs          /api/templates
+│   ├── InspectionsController.cs        /api/inspections/* (itens, evidências)
+│   └── OccurrencesController.cs        /api/occurrences/*
 ├── wwwroot/                            front-end (index.html, app.js, app.css)
-└── Program.cs                          DI, CORS, middleware de autenticação
+└── Program.cs                          DI, CORS, rate limiting, middleware de autenticação
 ```
 
 **Ponto de extensão principal:** toda a superfície de dados está no contrato `IVistoraStore`. Trocar o armazenamento em memória por EF Core/PostgreSQL significa implementar essa interface e registrá-la em `Program.cs` — nenhuma outra camada precisa mudar.
@@ -180,10 +185,14 @@ curl -X POST http://localhost:5062/api/inspections \
 
 ## Segurança implementada
 
-- **Autenticação** — JWT **HS256 assinado** (`TokenService`), validado por middleware em `Program.cs`. A chave vem de `Jwt:Key` (`docker-compose.yml` / `.env`).
+- **Autenticação** — JWT **HS256 assinado** (`TokenService`), validado por middleware em `Program.cs`. A chave vem de `Jwt:Key` (`docker-compose.yml` / `.env`); fora do ambiente `Development`, a aplicação **falha ao iniciar** se `Jwt:Key` não estiver configurada com pelo menos 32 caracteres — nunca existe uma chave padrão gravada no código-fonte. Em `Development` sem `Jwt:Key`, uma chave aleatória é gerada só para aquela execução (aviso no console; sessões não sobrevivem a um restart).
+- **Rate limiting no login** — `/api/auth/login` aceita no máximo 5 tentativas por minuto por IP (`RateLimiter` nativo do ASP.NET Core).
+- **Papéis/permissões** — `RequireRoleAttribute` bloqueia com 403 endpoints administrativos (cadastro de imóvel, criação/remoção de modelo) para usuários fora do papel `Administrador`.
 - **Senhas** — **PBKDF2** com SHA-256, 120.000 iterações e salt por usuário, comparadas em tempo constante (`PasswordHasher`).
+- **Evidências com hash verificável** — o hash SHA-256 de cada foto é calculado só sobre os bytes da imagem (nunca sobre um timestamp) e armazenado por inteiro, então pode ser recalculado e conferido depois contra o mesmo arquivo.
 - **XSS** — todo conteúdo dinâmico do front-end passa por escaping.
 - **Concorrência** — o store protege suas coleções com lock.
+- **Testes automatizados** — `SaasVistoria.Tests` (xUnit) cobre `PasswordHasher`, `TokenService`, `RequireRoleAttribute` e a lógica de conclusão/pendências/hash do `DemoVistoraStore`; roda em CI (`.github/workflows/ci.yml`) a cada push/PR.
 
 ### Limitações conhecidas
 
@@ -194,6 +203,8 @@ Este ainda é um projeto em evolução. Não assuma como produção:
 - Refresh token é emitido, mas **não persistido**
 - **CORS aberto** (`AllowAnyOrigin`)
 - Evidências são gravadas como data URL, não em blob storage
+- Token de sessão fica em `localStorage` no front-end (não em cookie `HttpOnly`)
+- Só existe um papel de usuário nos dados de seed (`Administrador`) — o mecanismo de permissões (`RequireRoleAttribute`) está pronto, mas ainda não há um segundo papel para validar contra ele
 
 ---
 
@@ -205,10 +216,11 @@ Roadmap, em ordem de prioridade:
 2. **Laudo em PDF** com fotos, hashes e assinatura digital das partes
 3. **Blob storage** (Azure Blob / S3) para as evidências
 4. **Comparativo entrada × saída** — o relatório que fecha o ciclo da locação
-5. Refresh token persistido, rate limiting e CORS restrito
+5. Refresh token persistido e CORS restrito
 6. Segredos em cofre (Key Vault / Secrets Manager)
 7. Observabilidade com OpenTelemetry / Serilog
 8. Testes de integração com PostgreSQL efêmero
+9. Cookie `HttpOnly`/`SameSite=Strict` para o token de sessão, no lugar de `localStorage`
 
 ---
 
