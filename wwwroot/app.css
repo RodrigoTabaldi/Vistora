@@ -259,7 +259,7 @@ header p{margin:0;color:var(--muted);font-size:16px}
 .photo-preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .photo-preview img{width:100px;height:78px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 .add-topic{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
-.add-topic input{flex:1;min-width:170px}
+.add-topic input,.add-topic select{flex:1;min-width:170px}
 .final-card{display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap;background:linear-gradient(120deg,#0d3b33,#092e28);color:#fff;border:0}
 .final-card h3{color:#fff;font:600 25px var(--serif);margin:8px 0 0}
 .final-card p{color:#a9c2b9;font-size:15px;margin:8px 0 0}

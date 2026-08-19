@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SaasVistoria.Application;
 
 namespace SaasVistoria.Controllers;
@@ -47,7 +47,16 @@ public sealed class InspectionsController(IVistoraStore store) : VistoraApiContr
 
     [HttpPut("inspections/{id:guid}/items/{itemId:guid}")]
     public IActionResult UpdateItem(Guid id, Guid itemId, UpdateItem request) =>
-        store.UpdateItem(id, itemId, request) is { } item ? Ok(item) : NotFound();
+        store.UpdateItem(id, itemId, request, CurrentActor) is { } item ? Ok(item) : NotFound();
+
+    [HttpPost("inspections/{id:guid}/template")]
+    public IActionResult ApplyTemplate(Guid id, ApplyTemplate request)
+    {
+        if (store.FindInspection(id) is null) return NotFound();
+        return store.ApplyTemplate(id, request.TemplateId, CurrentActor) is { } items
+            ? Ok(items)
+            : NotFound(new { message = "Modelo não encontrado." });
+    }
 
     [HttpDelete("inspections/{id:guid}/items/{itemId:guid}")]
     public IActionResult DeleteItem(Guid id, Guid itemId) => store.RemoveItem(id, itemId) ? NoContent() : NotFound();

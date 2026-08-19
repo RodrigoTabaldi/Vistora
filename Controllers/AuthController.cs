@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SaasVistoria.Application;
 
@@ -12,14 +12,17 @@ public sealed class AuthController(IVistoraStore store, TokenService tokens) : C
             ? Ok(tokens.Create(user))
             : Unauthorized(new { message = "E-mail ou senha inválidos." });
 
-    [HttpPost("register"), EnableRateLimiting("login")]
+    [HttpPost("register"), EnableRateLimiting("register")]
     public IActionResult Register(RegisterRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
             return BadRequest(new { message = "Preencha nome, e-mail e senha." });
+        var email = request.Email.Trim();
+        if (email.Count(c => c == '@') != 1 || email.StartsWith('@') || email.EndsWith('@') || email.Contains(' '))
+            return BadRequest(new { message = "Informe um e-mail válido." });
         if (request.Password.Length < 8)
             return BadRequest(new { message = "A senha precisa ter ao menos 8 caracteres." });
-        var user = store.Register(request.Name.Trim(), request.Email.Trim(), request.Password);
+        var user = store.Register(request.Name.Trim(), email, request.Password);
         return user is null
             ? Conflict(new { message = "Já existe uma conta com este e-mail." })
             : Ok(tokens.Create(user));

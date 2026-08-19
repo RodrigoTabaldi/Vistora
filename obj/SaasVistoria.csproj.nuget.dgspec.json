@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\rodri\\source\\repos\\Vistora\\SaasVistoria\\SaasVistoria.csproj": {}
+    "c:\\Users\\rodri\\source\\repos\\Vistora\\SaasVistoria\\SaasVistoria.csproj": {}
   },
   "projects": {
-    "C:\\Users\\rodri\\source\\repos\\Vistora\\SaasVistoria\\SaasVistoria.csproj": {
+    "c:\\Users\\rodri\\source\\repos\\Vistora\\SaasVistoria\\SaasVistoria.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rodri\\source\\repos\\Vistora\\SaasVistoria\\SaasVistoria.csproj",
+        "projectUniqueName": "c:\\Users\\rodri\\source\\repos\\Vistora\\SaasVistoria\\SaasVistoria.csproj",
         "projectName": "SaasVistoria",
-        "projectPath": "C:\\Users\\rodri\\source\\repos\\Vistora\\SaasVistoria\\SaasVistoria.csproj",
+        "projectPath": "c:\\Users\\rodri\\source\\repos\\Vistora\\SaasVistoria\\SaasVistoria.csproj",
         "packagesPath": "C:\\Users\\rodri\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rodri\\source\\repos\\Vistora\\SaasVistoria\\obj\\",
+        "outputPath": "c:\\Users\\rodri\\source\\repos\\Vistora\\SaasVistoria\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

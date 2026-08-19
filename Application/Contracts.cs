@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using SaasVistoria.Domain;
@@ -27,7 +27,10 @@ public interface IVistoraStore
 
     IReadOnlyList<InspectionItem> GetItems(Guid inspectionId);
     InspectionItem AddItem(Guid inspectionId, CreateItem request);
-    InspectionItem? UpdateItem(Guid inspectionId, Guid itemId, UpdateItem request);
+    // O ator entra aqui porque marcar um item como irregular abre uma ocorrência (e gera auditoria).
+    InspectionItem? UpdateItem(Guid inspectionId, Guid itemId, UpdateItem request, string actor);
+    // Aplica um modelo sobre uma vistoria já criada, sem duplicar tópicos que já existem.
+    IReadOnlyList<InspectionItem>? ApplyTemplate(Guid inspectionId, Guid templateId, string actor);
     bool RemoveItem(Guid inspectionId, Guid itemId);
 
     IReadOnlyList<Evidence> GetEvidence(Guid inspectionId);
@@ -49,6 +52,7 @@ public sealed record UpdateItem(ConditionStatus Condition, string Notes);
 public sealed record CreateEvidence(Guid? ItemId, string Room, string DataUrl, decimal? Latitude, decimal? Longitude, decimal? Accuracy);
 public sealed record CreateTemplate(string Name, string Description, PropertyType? PropertyType, IReadOnlyList<TemplateRoom> Rooms);
 public sealed record CreateOccurrence(Guid InspectionId, string Title, string Priority, DateTime DueDate, decimal EstimatedCost, string? Room = null);
+public sealed record ApplyTemplate(Guid TemplateId);
 
 // Hashing PBKDF2 (SHA-256, 120k iterações, salt de 16 bytes) — formato: iterations.salt.hash em base64
 public static class PasswordHasher

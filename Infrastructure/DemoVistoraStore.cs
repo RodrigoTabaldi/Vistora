@@ -1,4 +1,4 @@
-using SaasVistoria.Application;
+﻿using SaasVistoria.Application;
 using SaasVistoria.Domain;
 
 namespace SaasVistoria.Infrastructure;
@@ -11,6 +11,8 @@ public sealed class DemoVistoraStore : IVistoraStore
     private readonly List<Inspection> _inspections;
     private readonly List<Occurrence> _occurrences;
     private readonly List<AuditEvent> _audit;
+    private static readonly Guid SeedUserId = new("00000000-0000-0000-0000-000000000001");
+    private static readonly ConditionStatus[] IrregularConditions = [ConditionStatus.Ruim, ConditionStatus.Danificado, ConditionStatus.Inexistente];
     private readonly List<AppUser> _users;
     private readonly List<InspectionTemplate> _templates;
     private readonly Dictionary<Guid, List<InspectionItem>> _items = new();
@@ -26,7 +28,9 @@ public sealed class DemoVistoraStore : IVistoraStore
     public DemoVistoraStore()
     {
         Company = new(_companyId, "Atelier Imóveis", "atelier-imoveis", "Profissional", 30, 500);
-        _users = [new(Guid.NewGuid(), _companyId, "Mariana Costa", "admin@atelierimoveis.com.br", "Administrador", PasswordHasher.Hash("Vistora@2026"))];
+        // Id fixo (e não Guid.NewGuid()): com um Jwt:Key estável, a sessão do usuário demo sobrevive a
+        // um restart da API. Contas criadas em runtime continuam sumindo — o store é em memória.
+        _users = [new(SeedUserId, _companyId, "Mariana Costa", "admin@atelierimoveis.com.br", "Administrador", PasswordHasher.Hash("Vistora@2026"))];
         _properties = [
             new(Guid.Parse("00000000-0000-0000-0000-000000000101"), _companyId, "Apartamento Aurora 1204", PropertyType.Apartamento, "Rua Oscar Freire, 812", "Jardins · São Paulo", 112, 3, 2, "Ocupado", "Helena Sampaio", "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=900&q=80", -23.5613m, -46.6690m),
             new(Guid.Parse("00000000-0000-0000-0000-000000000102"), _companyId, "Casa Bosque Alto", PropertyType.Casa, "Alameda dos Ipês, 48", "Alto de Pinheiros · São Paulo", 268, 4, 3, "Desocupado", "Ricardo Nobre", "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=80", -23.546m, -46.714m),
@@ -177,7 +181,7 @@ public sealed class DemoVistoraStore : IVistoraStore
         }
     }
 
-    public InspectionItem? UpdateItem(Guid inspectionId, Guid itemId, UpdateItem r)
+    public InspectionItem? UpdateItem(Guid inspectionId, Guid itemId, UpdateItem r, string actor)
     {
         lock (_gate)
         {
@@ -186,8 +190,53 @@ public sealed class DemoVistoraStore : IVistoraStore
             if (idx < 0) return null;
             var updated = list[idx] with { Condition = r.Condition, Notes = r.Notes };
             list[idx] = updated;
+            SyncAutoOccurrence(inspectionId, updated, actor);
             RecalcCompletion(inspectionId);
             return updated;
+        }
+    }
+
+    // Condição irregular vira ocorrência na hora; se o item for reavaliado como aceitável, a
+    // ocorrência automática ainda aberta some. Só toca no que ela mesma criou (ItemId preenchido).
+    private void SyncAutoOccurrence(Guid inspectionId, InspectionItem item, string actor)
+    {
+        var linked = _occurrences.FirstOrDefault(o => o.ItemId == item.Id);
+        if (IrregularConditions.Contains(item.Condition))
+        {
+            if (linked is not null) return;
+            var inspection = _inspections.FirstOrDefault(i => i.Id == inspectionId);
+            var priority = item.Condition == ConditionStatus.Ruim ? "Média" : "Alta";
+            var title = $"{item.Name} · {item.Room}";
+            _occurrences.Add(new(Guid.NewGuid(), _companyId, inspectionId, title, priority, "Aberta", DateTime.Today.AddDays(7), 0, inspection?.PropertyName ?? "", item.Room, item.Id));
+            Log("Abriu ocorrência automática", title, actor, $"Item marcado como {item.Condition} · prioridade {priority}" + (string.IsNullOrWhiteSpace(item.Notes) ? "" : $" · {item.Notes}"));
+        }
+        else if (linked is { Status: "Aberta" })
+        {
+            _occurrences.Remove(linked);
+            Log("Fechou ocorrência automática", linked.Title, actor, $"Item reavaliado como {item.Condition}");
+        }
+    }
+
+    public IReadOnlyList<InspectionItem>? ApplyTemplate(Guid inspectionId, Guid templateId, string actor)
+    {
+        lock (_gate)
+        {
+            var inspection = _inspections.FirstOrDefault(i => i.Id == inspectionId);
+            var template = _templates.FirstOrDefault(t => t.Id == templateId);
+            if (inspection is null || template is null) return null;
+            var list = _items.TryGetValue(inspectionId, out var l) ? l : _items[inspectionId] = [];
+            var added = 0;
+            foreach (var room in template.Rooms)
+                foreach (var topic in room.Topics)
+                {
+                    // Reaplicar o mesmo modelo (ou aplicar dois modelos que se sobrepõem) não duplica tópicos.
+                    if (list.Any(x => x.Room.Equals(room.Name, StringComparison.OrdinalIgnoreCase) && x.Name.Equals(topic, StringComparison.OrdinalIgnoreCase))) continue;
+                    list.Add(new(Guid.NewGuid(), inspectionId, room.Name, topic, ConditionStatus.NaoAvaliado, "", 0));
+                    added++;
+                }
+            RecalcCompletion(inspectionId);
+            Log("Aplicou modelo", template.Name, actor, $"{added} tópico(s) adicionados à vistoria {inspection.Code}");
+            return list.ToList();
         }
     }
 

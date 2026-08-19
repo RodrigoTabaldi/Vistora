@@ -141,10 +141,7 @@ async function showInspection(id) {
     return `<div class="room-group"><div class="room-head"><h4>▤ ${esc(room)}</h4><span class="room-count">${done}/${list.length} avaliados</span><button type="button" class="text-btn" data-report-occurrence="${esc(room)}">◭ Ocorrência</button></div>${list.map(c => itemHtml(c, ++n)).join('')}<div class="add-topic"><input class="new-topic-input" placeholder="Adicionar tópico em ${esc(room)}"><button type="button" class="ghost" data-add-item="${esc(room)}">+ Tópico</button></div></div>`;
   }).join('') || `<p class="field-hint">Nenhum tópico ainda. Adicione um ambiente abaixo para começar.</p>`;
   const evHtml = evidence.length ? `<div class="evidence-gallery">${evidence.map(e=>`<figure><img src="${esc(e.url)}" alt="" loading="lazy"><figcaption>${esc(e.room)} · ${timeOf(e.capturedAt)}</figcaption></figure>`).join('')}</div>` : `<p class="field-hint">Sem evidências ainda.</p>`;
-  const inspectionOccurrences = dashboard.occurrences.filter(o => o.inspectionId === id);
-  const occHtml = inspectionOccurrences.length
-    ? inspectionOccurrences.map(o => `<div class="ev"><b></b><div><strong>${esc(o.title)}${o.room ? ' · ' + esc(o.room) : ''}</strong><small>${esc(o.priority)} · prazo ${dateOf(o.dueDate)} · ${brl(o.estimatedCost)}</small></div></div>`).join('')
-    : `<p class="field-hint">Nenhuma ocorrência registrada nesta vistoria.</p>`;
+  const templatePicker = `<div class="add-topic" style="margin-bottom:20px"><select id="applyTemplateSelect"><option value="">Escolher um modelo disponível…</option>${templates.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select><button type="button" class="ghost" id="applyTemplateBtn">▤ Aplicar modelo</button></div>`;
   const finalCard = item.status === 'Concluida'
     ? `<section class="form-card final-card"><div><span class="eyebrow" style="color:var(--gold-2)">CONCLUÍDA</span><h3>Vistoria assinada e concluída</h3><p>${item.signedBy ? `Assinada por ${esc(item.signedBy)}${item.signedAt ? ' em ' + dateOf(item.signedAt) : ''}.` : 'Esta vistoria já foi concluída.'}</p></div></section>`
     : item.status === 'AguardandoAssinatura'
@@ -156,17 +153,32 @@ async function showInspection(id) {
     <div class="inspection-layout">
       <div class="inspection-main">
         <section class="form-card"><div class="card-heading"><div><span class="eyebrow">IDENTIFICAÇÃO</span><h3>Dados da vistoria</h3></div></div><div class="field-grid"><label>Data<input type="date" value="${new Date(item.scheduledAt).toISOString().slice(0,10)}"></label><label>Vistoriador<input value="${esc(item.inspector)}"></label><label>Tipo<input value="${esc(item.type)}"></label><label>Responsável presente<input placeholder="Nome completo"></label></div></section>
-        <section class="form-card"><div class="card-heading"><div><span class="eyebrow">CHECKLIST</span><h3>Condições por ambiente</h3><p>${items.length} tópicos em ${rooms.length} ambientes. Marque a condição e anexe fotos.</p></div></div>${roomsHtml}<div class="add-topic" style="margin-top:24px;border-top:1px solid var(--line);padding-top:20px"><input id="newRoomName" placeholder="Novo ambiente (ex.: Varanda gourmet)"><button type="button" class="ghost" id="addRoomBtn">+ Ambiente</button></div></section>
+        <section class="form-card"><div class="card-heading"><div><span class="eyebrow">CHECKLIST</span><h3>Condições por ambiente</h3><p>${items.length} tópicos em ${rooms.length} ambientes. Aplique um modelo pronto ou monte o checklist à mão — marcar um item como Irregular abre ocorrência automaticamente.</p></div></div>${templatePicker}${roomsHtml}<div class="add-topic" style="margin-top:24px;border-top:1px solid var(--line);padding-top:20px"><input id="newRoomName" placeholder="Novo ambiente (ex.: Varanda gourmet)"><button type="button" class="ghost" id="addRoomBtn">+ Ambiente</button></div></section>
         ${finalCard}
       </div>
       <aside class="inspection-side">
         <div class="side-card"><span class="eyebrow">RESUMO</span><h3>${esc(item.propertyName)}</h3><p>${esc(property?.neighborhood||'')}</p><div class="kv"><span>Tipo</span><strong>${esc(property?.type||'—')}</strong><span>Área</span><strong>${property?.area||'—'} m²</strong><span>Código</span><strong>${esc(item.code)}</strong><span>Ambientes</span><strong>${rooms.length}</strong><span>Tópicos</span><strong>${items.length}</strong></div></div>
         <div class="side-card"><span class="eyebrow">EVIDÊNCIAS</span><h3>Galeria (${evidence.length})</h3>${evHtml}</div>
-        <div class="side-card"><span class="eyebrow">OCORRÊNCIAS</span><h3>Nesta vistoria (${inspectionOccurrences.length})</h3>${occHtml}</div>
+        <div class="side-card" id="inspectionOccurrences">${occurrenceCardHtml(id)}</div>
         <div class="side-card side-help"><strong style="font-size:16px">Boa vistoria ◆</strong><p>Registre uma foto ampla e uma de detalhe para cada divergência. A localização é gravada automaticamente junto ao hash da imagem.</p></div>
       </aside>
     </div></form>`;
 }
+// Conteúdo do card lateral de ocorrências — reutilizado no refresh depois de marcar um item
+// como irregular, para não re-renderizar (e perder o scroll) a vistoria inteira.
+function occurrenceCardHtml(inspectionId) {
+  const list = dashboard.occurrences.filter(o => o.inspectionId === inspectionId);
+  const body = list.length
+    ? list.map(o => `<div class="ev"><b></b><div><strong>${esc(o.title)}${o.itemId ? ' · automática' : ''}</strong><small>${esc(o.priority)} · prazo ${dateOf(o.dueDate)}${o.estimatedCost ? ' · ' + brl(o.estimatedCost) : ''}</small></div></div>`).join('')
+    : `<p class="field-hint">Nenhuma ocorrência registrada nesta vistoria.</p>`;
+  return `<span class="eyebrow">OCORRÊNCIAS</span><h3>Nesta vistoria (${list.length})</h3>${body}`;
+}
+async function refreshOccurrences(inspectionId) {
+  try { await loadData(); } catch { return; }
+  const card = $('#inspectionOccurrences');
+  if (card) card.innerHTML = occurrenceCardHtml(inspectionId);
+}
+
 function itemHtml(c, idx) {
   const sel = COND_MAP[c.condition];
   const radio = (v,l) => `<label><input type="radio" name="cond-${c.id}" value="${v}" ${sel===v?'checked':''}><span>${l}</span></label>`;
@@ -186,7 +198,8 @@ async function saveItem(id) {
   const form = $('#fieldInspectionForm'); if (!form) return;
   const checked = form.querySelector(`input[name="cond-${id}"]:checked`);
   const notes = form.querySelector(`textarea[data-notes="${id}"]`)?.value || '';
-  try { await api(`inspections/${form.dataset.id}/items/${id}`, { method:'PUT', body: JSON.stringify({ condition: checked ? COND_VALUE[+checked.value] : 'NaoAvaliado', notes }) }); } catch {}
+  try { return await api(`inspections/${form.dataset.id}/items/${id}`, { method:'PUT', body: JSON.stringify({ condition: checked ? COND_VALUE[+checked.value] : 'NaoAvaliado', notes }) }); }
+  catch (err) { toast(`Não foi possível salvar este item: ${err.message}`, 'warn'); return null; }
 }
 
 /* ---------- DETALHES ---------- */
@@ -211,38 +224,66 @@ function setAuthMode(mode) {
   $('#registerForm').classList.toggle('hidden', mode !== 'register');
   $('#authTitle').textContent = mode === 'login' ? 'Entre na sua operação.' : 'Crie sua conta.';
   $('#authSubtitle').textContent = mode === 'login' ? 'Imóveis, vistorias e laudos em um só lugar.' : 'Cadastre-se e comece a usar a Vistora agora — sem depender da conta demonstrativa.';
-  $('#demoNoteText').textContent = mode === 'login' ? 'Ambiente demonstrativo · credenciais preenchidas' : 'Já tem uma conta?';
+  $('#demoNoteText').textContent = mode === 'login' ? 'Ainda não tem uma conta?' : 'Já tem uma conta?';
   $('#authToggleBtn').textContent = mode === 'login' ? 'Cadastre-se' : 'Entrar';
+}
+
+// Erro legível para o usuário: 400/401/409 trazem {message}; 429 e falhas de rede não traziam nada
+// e o cadastro morria com uma mensagem genérica sem dizer o motivo.
+async function authError(r) {
+  let body = null; try { body = await r.json(); } catch {}
+  if (body?.message) return Object.assign(new Error(body.message), { status:r.status });
+  if (body?.errors) return Object.assign(new Error(Object.values(body.errors).flat().join(' ')), { status:r.status });
+  const fallback = r.status === 429 ? 'Muitas tentativas seguidas. Aguarde um minuto e tente novamente.'
+    : r.status === 401 ? 'E-mail ou senha inválidos. Tente novamente.'
+    : `Não foi possível concluir (erro ${r.status}).`;
+  return Object.assign(new Error(fallback), { status:r.status });
+}
+async function postAuth(path, body) {
+  let r;
+  try { r = await fetch('/api/auth/' + path, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) }); }
+  catch { throw new Error('Não foi possível falar com o servidor. Confirme que a API está rodando e recarregue a página.'); }
+  if (!r.ok) throw await authError(r);
+  return r.json();
+}
+// Entra no app depois de autenticar. Falha ao carregar os dados não pode derrubar a sessão —
+// antes, um erro aqui voltava como "e-mail ou senha inválidos" / "não foi possível criar a conta"
+// mesmo com a conta já criada no servidor.
+async function enterApp(data) {
+  token.set(data.accessToken); applySession(data.user);
+  try { await loadData(); }
+  catch (err) { if (!token.get()) throw err; toast(`Sessão iniciada, mas os dados não carregaram: ${err.message}`, 'warn'); }
+  $('#loginScreen').classList.add('hidden'); $('#appShell').classList.remove('hidden');
+  setActiveNav('dashboard');
+  try { renderDashboard(); }
+  catch { $('#pageContent').innerHTML = `<p class="field-hint">Não foi possível montar o painel. Recarregue a página.</p>`; }
 }
 
 /* ---------- EVENTOS ---------- */
 $('#loginForm').addEventListener('submit', async e => {
-  e.preventDefault(); const msg = $('#loginMessage'), btn = e.submitter;
+  e.preventDefault();
+  const msg = $('#loginMessage'), btn = e.submitter || $('#loginForm button[type=submit]');
   btn.disabled = true; btn.textContent = 'Entrando...'; msg.textContent = '';
-  try {
-    const r = await fetch('/api/auth/login', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ email:$('#loginEmail').value, password:$('#loginPassword').value }) });
-    if (!r.ok) throw new Error();
-    const data = await r.json(); token.set(data.accessToken); applySession(data.user);
-    await loadData();
-    $('#loginScreen').classList.add('hidden'); $('#appShell').classList.remove('hidden');
-    setActiveNav('dashboard'); renderDashboard();
-  } catch { msg.textContent = 'E-mail ou senha inválidos. Tente novamente.'; }
+  try { await enterApp(await postAuth('login', { email:$('#loginEmail').value.trim(), password:$('#loginPassword').value })); }
+  catch (err) { msg.textContent = err.message; }
   finally { btn.disabled = false; btn.innerHTML = 'Entrar na Vistora <span>→</span>'; }
 });
 
 $('#registerForm').addEventListener('submit', async e => {
-  e.preventDefault(); const msg = $('#registerMessage'), btn = e.submitter;
+  e.preventDefault();
+  const msg = $('#registerMessage'), btn = e.submitter || $('#registerForm button[type=submit]');
   btn.disabled = true; btn.textContent = 'Criando conta...'; msg.textContent = '';
+  let data;
   try {
-    const r = await fetch('/api/auth/register', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ name:$('#registerName').value, email:$('#registerEmail').value, password:$('#registerPassword').value }) });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.message || 'Não foi possível criar a conta.');
-    token.set(data.accessToken); applySession(data.user);
-    await loadData();
-    $('#loginScreen').classList.add('hidden'); $('#appShell').classList.remove('hidden');
-    setActiveNav('dashboard'); renderDashboard();
-    e.target.reset();
-  } catch (err) { msg.textContent = err.message; }
+    data = await postAuth('register', { name:$('#registerName').value.trim(), email:$('#registerEmail').value.trim(), password:$('#registerPassword').value });
+  } catch (err) {
+    msg.textContent = err.status === 409 ? `${err.message} Use "Entrar" para acessar com ela.` : err.message;
+    btn.disabled = false; btn.innerHTML = 'Criar conta <span>→</span>';
+    return;
+  }
+  // Daqui em diante a conta existe: qualquer problema vira aviso, nunca "não foi possível criar".
+  try { await enterApp(data); e.target.reset(); toast('Conta criada. Bem-vindo à Vistora.', 'ok'); }
+  catch (err) { msg.textContent = `Conta criada, mas a sessão falhou: ${err.message} Tente entrar novamente.`; setAuthMode('login'); }
   finally { btn.disabled = false; btn.innerHTML = 'Criar conta <span>→</span>'; }
 });
 
@@ -262,7 +303,7 @@ document.addEventListener('click', async e => {
   if (t.id === 'searchBtn') { await renderView('properties'); return $('#propertySearch')?.focus(); }
   if (t.id === 'notificationsBtn') return toast('Você tem ocorrências que pedem atenção.','warn');
   if (t.id === 'featureBtn') return toast('Disponível na configuração da sua conta.');
-  if (t.id === 'forgotBtn') return toast('Use as credenciais demonstrativas preenchidas.');
+  if (t.id === 'forgotBtn') return toast('Enviaremos as instruções de recuperação para o e-mail cadastrado.');
   if (t.id === 'passwordToggle') { const f = $('#loginPassword'); f.type = f.type==='password'?'text':'password'; return; }
   if (t.id === 'registerPasswordToggle') { const f = $('#registerPassword'); f.type = f.type==='password'?'text':'password'; return; }
   if (t.id === 'authToggleBtn') return setAuthMode(authMode === 'login' ? 'register' : 'login');
@@ -271,6 +312,13 @@ document.addEventListener('click', async e => {
 
   if (d.delItem) { const f = $('#fieldInspectionForm'); await api(`inspections/${f.dataset.id}/items/${d.delItem}`, { method:'DELETE' }); await loadData(); return showInspection(f.dataset.id); }
   if (d.addItem !== undefined) { const f = $('#fieldInspectionForm'); const input = t.closest('.room-group').querySelector('.new-topic-input'); if(!input.value.trim()) return; await api(`inspections/${f.dataset.id}/items`, { method:'POST', body: JSON.stringify({ room:d.addItem, name:input.value.trim() }) }); await loadData(); return showInspection(f.dataset.id); }
+  if (t.id === 'applyTemplateBtn') {
+    const f = $('#fieldInspectionForm'), sel = $('#applyTemplateSelect');
+    if (!sel.value) return toast('Escolha um modelo para aplicar.','warn');
+    try { await api(`inspections/${f.dataset.id}/template`, { method:'POST', body: JSON.stringify({ templateId: sel.value }) }); await loadData(); await showInspection(f.dataset.id); toast('Modelo aplicado ao checklist.','ok'); }
+    catch(err){ toast(err.message,'warn'); }
+    return;
+  }
   if (t.id === 'addRoomBtn') { const f = $('#fieldInspectionForm'); const name = $('#newRoomName').value.trim(); if(!name) return; await api(`inspections/${f.dataset.id}/items`, { method:'POST', body: JSON.stringify({ room:name, name:'Condição geral' }) }); await loadData(); return showInspection(f.dataset.id); }
   if (t.id === 'completeBtn') { const f = $('#fieldInspectionForm'); try { await api(`inspections/${f.dataset.id}/complete`, { method:'POST' }); await loadData(); toast('Vistoria concluída. Aguardando assinatura.','ok'); renderView('assinaturas'); } catch(err){ toast(err.message,'warn'); } return; }
   if (t.id === 'signBtn') { const f = $('#fieldInspectionForm'); try { await api(`inspections/${f.dataset.id}/sign`, { method:'POST' }); await loadData(); toast('Vistoria assinada e concluída.','ok'); renderView('assinaturas'); } catch(err){ toast(err.message,'warn'); } return; }
@@ -296,7 +344,18 @@ document.addEventListener('click', async e => {
 });
 
 document.addEventListener('change', async e => {
-  if (e.target.matches('#fieldInspectionForm input[type=radio]')) { updateProgress(); await saveItem(e.target.name.replace('cond-','')); }
+  if (e.target.matches('#fieldInspectionForm input[type=radio]')) {
+    updateProgress();
+    const itemId = e.target.name.replace('cond-','');
+    const hadAuto = dashboard?.occurrences?.some(o => o.itemId === itemId);
+    const saved = await saveItem(itemId);
+    // Irregular abre ocorrência no servidor; voltar para Bom/Regular fecha a que foi aberta assim.
+    const irregular = saved?.condition === 'Danificado';
+    if (irregular || hadAuto) {
+      await refreshOccurrences($('#fieldInspectionForm')?.dataset.id);
+      toast(irregular ? `Item irregular — ocorrência aberta automaticamente em ${saved.room}.` : 'Item regularizado — ocorrência automática encerrada.', irregular ? 'warn' : 'ok');
+    }
+  }
   if (e.target.matches('[data-photo]')) return handlePhotos(e.target);
 });
 document.addEventListener('input', e => {
